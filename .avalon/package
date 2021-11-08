@@ -1,0 +1,7 @@
+{
+    "binname": "acmp",
+    "installScript": ".avalon/gen.py",
+    "toCopy": [
+        "main.py"
+    ]
+}
