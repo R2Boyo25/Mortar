@@ -1,6 +1,7 @@
 {
     "binname": "acmp",
     "installScript": ".avalon/gen.py",
+    "mvBinAfterInstallScript": true,
     "toCopy": [
         "main.py"
     ]
