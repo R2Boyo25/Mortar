@@ -10,6 +10,7 @@ def main():
     filestr = " ".join( [ f"\"{i}\"" for i in files ] )
 
     cppargs = " ".join(sys.argv[1:])
+    print(f'c++ {filestr} {cppargs}')
     os.system(f'c++ {filestr} {cppargs}')
 
 if __name__ == "__main__":
