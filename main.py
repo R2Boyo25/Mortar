@@ -1,6 +1,6 @@
 import os, sys, config
 
-cfg = config.config()
+cfg = config.getConfig()
 
 def comp(com, args):
     ofiles = []
