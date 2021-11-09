@@ -6,7 +6,7 @@ def toDots(path):
     return ".".join(path.split("/"))
 
 def genConfig():
-    if not (os.path.exists(rootpath + toDots(os.getcwd())) or os.path.exists('.acmp')):
+    if not (os.path.exists(rootpath + toDots(os.getcwd()))) or not (os.path.exists('.acmp')):
         with open(rootpath + toDots(os.getcwd()), "w") as f:
             f.write("{\n\n\n}")
 
