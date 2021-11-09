@@ -37,6 +37,7 @@ def main():
     elif len(sys.argv) == 2:
         if sys.argv[1] == 'config':
             cfg = config.getConfig()
+            cfg[sys.argv[2]] = {}
             cfg[sys.argv[2]][sys.argv[3]] = sys.argv[4:] if sys.argv[3] in ["l", "oarg"] else sys.argv[4]
             config.saveConfig(cfg)
         else:
