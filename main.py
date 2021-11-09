@@ -22,9 +22,11 @@ def compilecfg(name):
         if 'out' in cfg[name].keys():
             args.append('-o ' + cfg[name]['out'])
         if 'l' in cfg[name].keys():
-            args.append(*[f"-l{i}" for i in cfg[name]['l']])
+            for i in [f"-l{i}" for i in cfg[name]['l']]:
+                args.append(i)
         if 'oarg' in cfg[name].keys():
-            args.append(*[oarg for oarg in cfg[name]['oarg']])
+            for i in [oarg for oarg in cfg[name]['oarg']]:
+                args.append(i)
         
         comp(cfg['com'], args)
     else:
