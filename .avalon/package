@@ -3,6 +3,8 @@
     "installScript": ".avalon/gen.py",
     "mvBinAfterInstallScript": true,
     "toCopy": [
-        "main.py"
+        "main.py",
+        "config.py",
+        "config"
     ]
 }
