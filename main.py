@@ -1,6 +1,8 @@
-import os, sys
+import os, sys, config
 
-def main():
+cfg = config.config()
+
+def comp(com, args):
     ofiles = []
     for root, dirs, files in os.walk("./"):
         for file in files:
@@ -9,9 +11,35 @@ def main():
 
     filestr = " ".join( [ f"\"{i}\"" for i in ofiles ] )
 
-    cppargs = " ".join(sys.argv[1:])
-    print(f'c++ {filestr} {cppargs}')
-    os.system(f'c++ {filestr} {cppargs}')
+    cppargs = " ".join(args)
+    print(f'{com} {filestr} {cppargs}')
+    os.system(f'{com} {filestr} {cppargs}')
+
+def compilecfg(name):
+    if name in cfg.keys():
+        com = cfg[name]['com'] if 'com' in cfg[name].keys() else 'c++'
+        args = []
+        if 'out' in cfg[name].keys():
+            args.append('-o ' + cfg[name]['out'])
+        if 'l' in cfg[name].keys():
+            args.append(*[f"-l{i}" for i in cfg[name]['l']])
+        if 'oarg' in cfg[name].keys():
+            args.append(*[oarg for oarg in cfg[name]['oarg']])
+        
+        comp(cfg['com'], args)
+    else:
+        print('Target "' + name + '" not found.')
+        quit()
+
+def main():
+    if len(sys.argv) == 1:
+        compilecfg('_default')
+    elif len(sys.argv) == 2:
+        if sys.argv[1] == 'config':
+            cfg[sys.argv[2]][sys.argv[3]] = sys.argv[4:] if sys.argv[3] in ["l", "oarg"] else sys.argv[4]
+            cfg._save()
+        else:
+            compilecfg(sys.argv[1])
 
 if __name__ == "__main__":
     main()
