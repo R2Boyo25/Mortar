@@ -36,8 +36,9 @@ def main():
         compilecfg('_default')
     elif len(sys.argv) == 2:
         if sys.argv[1] == 'config':
+            cfg = config.getConfig()
             cfg[sys.argv[2]][sys.argv[3]] = sys.argv[4:] if sys.argv[3] in ["l", "oarg"] else sys.argv[4]
-            cfg._save()
+            config.saveConfig(cfg)
         else:
             compilecfg(sys.argv[1])
 
