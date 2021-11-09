@@ -1,6 +1,6 @@
 import os, json
 
-rootpath = f"/{'/'.join(os.path.abspath(__file__).split('/')[:-1])}/"
+rootpath = f"/{'/'.join(os.path.abspath(__file__).split('/')[:-1])}/aconfig/"
 
 def toDots(path):
     return ".".join(path.split("/"))

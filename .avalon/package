@@ -5,6 +5,6 @@
     "toCopy": [
         "main.py",
         "config.py",
-        "config"
+        "aconfig"
     ]
 }
