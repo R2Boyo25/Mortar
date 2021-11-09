@@ -8,7 +8,7 @@ def toDots(path):
 def genConfig():
     if not (os.path.exists(rootpath + toDots(os.getcwd()))) or not (os.path.exists('.acmp')):
         with open(rootpath + toDots(os.getcwd()), "w") as f:
-            f.write("{\n\n\n}")
+            f.write("{\n\n}")
 
 def loadConfig(path):
     with open(path, "r") as f:

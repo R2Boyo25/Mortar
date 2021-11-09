@@ -41,6 +41,7 @@ def main():
             cfg = config.getConfig()
             cfg[sys.argv[2]] = {}
             cfg[sys.argv[2]][sys.argv[3]] = sys.argv[4:] if sys.argv[3] in ["l", "oarg"] else sys.argv[4]
+            print(cfg)
             config.saveConfig(cfg)
         else:
             compilecfg(sys.argv[1])
