@@ -28,7 +28,7 @@ def compilecfg(name):
             for i in [oarg for oarg in cfg[name]['oarg']]:
                 args.append(i)
         
-        comp(cfg['com'], args)
+        comp(com, args)
     else:
         print('Target "' + name + '" not found.')
         quit()
