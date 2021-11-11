@@ -34,15 +34,14 @@ def compilecfg(name):
         quit()
 
 def main():
-    print(sys.argv)
     if len(sys.argv) == 1:
         compilecfg('_default')
     elif len(sys.argv) >= 2:
         if sys.argv[1] == 'config':
             cfg = config.getConfig()
-            cfg[sys.argv[2]] = {}
+            if not sys.argv[2] in cfg:
+                cfg[sys.argv[2]] = {}
             cfg[sys.argv[2]][sys.argv[3]] = sys.argv[4:] if sys.argv[3] in ["l", "oarg"] else sys.argv[4]
-            print(cfg)
             config.saveConfig(cfg)
         else:
             compilecfg(sys.argv[1])
