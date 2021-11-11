@@ -34,9 +34,10 @@ def compilecfg(name):
         quit()
 
 def main():
+    print(sys.argv)
     if len(sys.argv) == 1:
         compilecfg('_default')
-    elif len(sys.argv) == 2:
+    elif len(sys.argv) >= 2:
         if sys.argv[1] == 'config':
             cfg = config.getConfig()
             cfg[sys.argv[2]] = {}

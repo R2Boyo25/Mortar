@@ -6,9 +6,11 @@ def toDots(path):
     return ".".join(path.split("/"))
 
 def genConfig():
-    if not (os.path.exists(rootpath + toDots(os.getcwd()))) or not (os.path.exists('.acmp')):
-        with open(rootpath + toDots(os.getcwd()), "w") as f:
-            f.write("{\n\n}")
+    print(os.path.exists(rootpath + toDots(os.getcwd())), os.path.exists('.acmp'))
+    if not os.path.exists('.acmp'):
+        if not os.path.exists(rootpath + toDots(os.getcwd())):
+            with open(rootpath + toDots(os.getcwd()), "w") as f:
+                f.write("{\n\n}")
 
 def loadConfig(path):
     with open(path, "r") as f:
@@ -22,6 +24,7 @@ def getConfig():
         return loadConfig(rootpath + toDots(os.getcwd()))
     
 def saveConfig(data):
+    print(data)
     genConfig()
     if os.path.exists(".acmp"):
         with open('.acmp', 'w') as f:
