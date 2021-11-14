@@ -13,7 +13,7 @@ def comp(com, args):
 
     cppargs = " ".join(args)
     print(f'{com} {filestr} {cppargs}')
-    os.system(f'{com} {filestr} {cppargs}')
+    return os.system(f'{com} {filestr} {cppargs}')
 
 def compilecfg(name):
     if name in cfg.keys():
@@ -28,7 +28,9 @@ def compilecfg(name):
             for i in [oarg for oarg in cfg[name]['oarg']]:
                 args.append(i)
         
-        comp(com, args)
+        if not comp(com, args):
+            if "after" in cfg[name].keys():
+                os.system(cfg[name]["after"])
     else:
         print('Target "' + name + '" not found.')
         quit()
