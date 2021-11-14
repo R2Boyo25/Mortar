@@ -12,7 +12,8 @@ def comp(com, args):
     filestr = " ".join( [ f"\"{i}\"" for i in ofiles ] )
 
     cppargs = " ".join(args)
-    print(f'{com} {filestr} {cppargs}')
+    if '-c' in sys.argv:
+        print(f'{com} {filestr} {cppargs}')
     return os.system(f'{com} {filestr} {cppargs}')
 
 def compilecfg(name):
