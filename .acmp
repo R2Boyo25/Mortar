@@ -1,0 +1,19 @@
+{
+    "_default": {
+        "out": "acmp",
+        "oarg": [
+            "-Ofast",
+            "-std=c++17"
+        ],
+        "com": "c++"
+    },
+    "d": {
+        "out": "acmp",
+        "oarg": [
+            "-Ofast",
+            "-std=c++17"
+        ],
+        "com": "c++",
+        "after": "./acmp"
+    }
+}

@@ -1,0 +1,1 @@
+g++ -Ofast -oacmp acmp.cpp -std=c++17

@@ -1,10 +1,4 @@
 {
     "binname": "acmp",
-    "installScript": ".avalon/gen.py",
-    "mvBinAfterInstallScript": true,
-    "toCopy": [
-        "main.py",
-        "config.py",
-        "aconfig"
-    ]
+    "compileScript": ".avalon/comp.sh"
 }
