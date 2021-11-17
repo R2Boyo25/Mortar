@@ -1,7 +1,5 @@
 {
     "binname": "acmp",
-    "compileScript": ".avalon/comp.sh",
-    "toCopy": [
-        "acmp"
-    ]
+    "needsCompiled": true,
+    "compileScript": ".avalon/comp.sh"
 }
