@@ -143,7 +143,7 @@ void compTarget(string target) {
 
         if (ctarg.count("l")) {
             for (string const& li : ctarg.at("l")) {
-                link += li + " ";
+                link += "-l" + li + " ";
             }
         }
 
