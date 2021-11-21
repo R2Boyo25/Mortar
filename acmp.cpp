@@ -26,13 +26,13 @@ vector<string> split(string splitting, char delimiter) { // https://stackoverflo
     return seglist;
 }
 
-string join(vector<string> v) { // https://stackoverflow.com/a/20986194
+string join(vector<string> v, string delimiter = " ") { // https://stackoverflow.com/a/20986194
     stringstream ss;
     const int v_size = v.size();
-    for(size_t i = 0; i < v_size; ++i)  // v is your vector of string
+    for(size_t i = 0; i < v_size; ++i)
     {
         if(i != 0)
-            ss << " ";
+            ss << delimiter;
         ss << v[i];
     }
     string s = ss.str();
@@ -88,6 +88,71 @@ vector<string> filterFiles(vector<string> files, vector<string> exts = {"cpp", "
     return ffiles;
 }
 
+string replaceExt(string filename, string newext) {
+    vector<string> splt = split(filename, '.');
+    splt[splt.size() - 1] = newext;
+    return join(splt, ".");
+}
+
+vector<string> replaceExts(vector<string> files, string newext) {
+    vector<string> newfiles = {};
+    for (string const& file : files) {
+        newfiles.push_back(replaceExt(file, newext));
+    }
+    return newfiles;
+}
+
+bool startsWith(string str, string strwth) {
+    return str.rfind(strwth, 0) == 0;
+}
+
+bool fileChanged(string filename) {
+    return true; // ToDo
+}
+
+int rawComp(string file, string com = "g++", vector<string> args = {}) {
+    string comm = join({com, file, join(args)});
+
+    const char * ccomm = comm.c_str();
+
+    return system(ccomm);
+}
+
+tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args = {}) {
+    vector<string> nargs = {"-c"};
+    for (const string& arg : args) {
+        if (!startsWith(arg, "-o")) {
+            nargs.push_back(arg);
+        } else {
+            nargs.push_back("-o" + replaceExt(cppfile, "o"));
+        }
+    }
+
+    return { replaceExt(cppfile, ".o"), rawComp(cppfile, com, nargs) };
+}
+
+int oComp(string com = "g++", vector<string> args = {}) {
+    string jargs = join(args);
+    vector<string> wfiles = filterFiles(getFiles());
+
+    for (const string& file : wfiles) {
+        auto [ofile, scode] = compO(file, com, args);
+        if (scode != 0) {
+            exit(scode);
+        }
+    }
+
+    string jofiles = join(wrap(replaceExts(wfiles, "o")));
+
+    string comm = join({com, jofiles, jargs});
+
+    cout << comm << endl;
+
+    const char * ccomm = comm.c_str();
+
+    return system(ccomm);
+}
+
 int comp(string com = "g++", vector<string> args = {}) {
     string jargs = join(args);
     vector<string> wfiles = wrap(filterFiles(getFiles()));
@@ -96,6 +161,8 @@ int comp(string com = "g++", vector<string> args = {}) {
     string comm = join({com, jfiles, jargs});
 
     const char * ccomm = comm.c_str();
+
+    cout << comm << endl;
 
     return system(ccomm);
 }
@@ -114,7 +181,6 @@ json loadConfig() {
 
         return cfg;
     }
-    
 }
 
 void compTarget(string target) {
@@ -150,13 +216,32 @@ void compTarget(string target) {
         if (ctarg.count("out")) {
             out = "-o" + string(ctarg.at("out"));
         }
-
-        if (ctarg.count("after")) {
-            if (comp(com, {out, oarg, link})) {
-                int rcode = system(string(ctarg.at("after")).c_str());
+        if (ctarg.count("obj")) {
+            if (ctarg.at("obj")) {
+                if (ctarg.count("after")) {
+                    if (comp(com, {out, oarg, link})) {
+                        int rcode = system(string(ctarg.at("after")).c_str());
+                    }
+                } else {
+                    comp(com, {out, oarg, link});
+                }
+            } else {
+                if (ctarg.count("after")) {
+                    if (oComp(com, {out, oarg, link})) {
+                        int rcode = system(string(ctarg.at("after")).c_str());
+                    }
+                } else {
+                    oComp(com, {out, oarg, link});
+                }
             }
         } else {
-            comp(com, {out, oarg, link});
+            if (ctarg.count("after")) {
+                if (comp(com, {out, oarg, link})) {
+                    int rcode = system(string(ctarg.at("after")).c_str());
+                }
+            } else {
+                comp(com, {out, oarg, link});
+            }
         }
     }
 }
