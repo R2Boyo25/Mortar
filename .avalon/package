@@ -1,5 +1,10 @@
 {
     "binname": "acmp",
     "needsCompiled": true,
-    "compileScript": ".avalon/comp.sh"
+    "compileScript": ".avalon/comp.sh",
+    "deps": {
+        "apt": [
+            "libboost-all-dev"
+        ]
+    }
 }

@@ -7,6 +7,8 @@
 #include <map>
 #include <any>
 #include "nlohmann/json.hpp"
+#include "SHA1/sha1.hpp" // https://github.com/stbrumme/hash-library
+
 
 using namespace std;
 using namespace std::filesystem;
@@ -106,8 +108,40 @@ bool startsWith(string str, string strwth) {
     return str.rfind(strwth, 0) == 0;
 }
 
+string readFile(string fname) {
+    // https://stackoverflow.com/a/2602258/14639101
+    std::ifstream t(fname);
+    std::stringstream buffer;
+    buffer << t.rdbuf();
+    return buffer.str();
+}
+
+string genHash(string fname) {
+    SHA1 sha1;
+    string fcont = readFile(fname);
+
+    return sha1(fcont);
+}
+
+void writeFile(string fname, string content) {
+    std::ofstream out(fname);
+    out << content;
+    out.close();
+} 
+
 bool fileChanged(string filename) {
-    return true; // ToDo
+    string fname = replaceExt(filename, "ahsh");
+    if (exists(fname)) {
+        if (readFile(fname) != genHash(filename)) {
+            writeFile(fname, genHash(filename));
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        writeFile(fname, genHash(filename));
+        return true;
+    }
 }
 
 int rawComp(string file, string com = "g++", vector<string> args = {}) {
@@ -119,16 +153,21 @@ int rawComp(string file, string com = "g++", vector<string> args = {}) {
 }
 
 tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args = {}) {
-    vector<string> nargs = {"-c"};
-    for (const string& arg : args) {
-        if (!startsWith(arg, "-o")) {
-            nargs.push_back(arg);
-        } else {
-            nargs.push_back("-o" + replaceExt(cppfile, "o"));
+    if (fileChanged(cppfile)) {
+        cout << "compiling " + cppfile << endl;
+        vector<string> nargs = {"-c"};
+        for (const string& arg : args) {
+            if (!startsWith(arg, "-o")) {
+                nargs.push_back(arg);
+            } else {
+                nargs.push_back("-o" + replaceExt(cppfile, "o"));
+            }
         }
-    }
 
-    return { replaceExt(cppfile, ".o"), rawComp(cppfile, com, nargs) };
+        return { replaceExt(cppfile, ".o"), rawComp(cppfile, com, nargs) };
+    } else {
+        return { replaceExt(cppfile, ".o"), 0 };
+    }
 }
 
 int oComp(string com = "g++", vector<string> args = {}) {
@@ -169,11 +208,7 @@ int comp(string com = "g++", vector<string> args = {}) {
 
 json loadConfig() {
     if ( exists(".acmp") ) {
-        ifstream t (".acmp");
-        stringstream buffer;
-        buffer << t.rdbuf();
-
-        json cfg = json::parse(buffer.str());
+        json cfg = json::parse(readFile(".acmp"));
 
         return cfg;
     } else {
@@ -217,7 +252,7 @@ void compTarget(string target) {
             out = "-o" + string(ctarg.at("out"));
         }
         if (ctarg.count("obj")) {
-            if (ctarg.at("obj")) {
+            if (!ctarg.at("obj")) {
                 if (ctarg.count("after")) {
                     if (comp(com, {out, oarg, link})) {
                         int rcode = system(string(ctarg.at("after")).c_str());

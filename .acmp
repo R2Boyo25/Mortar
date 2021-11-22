@@ -5,7 +5,8 @@
             "-Ofast",
             "-std=c++17"
         ],
-        "com": "c++"
+        "com": "c++",
+        "obj": true
     },
     "d": {
         "out": "acmp",
