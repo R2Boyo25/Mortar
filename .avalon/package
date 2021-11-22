@@ -1,5 +1,5 @@
 {
-    "binname": "acmp",
+    "binname": "mortar",
     "needsCompiled": true,
     "compileScript": ".avalon/comp.sh",
     "deps": {

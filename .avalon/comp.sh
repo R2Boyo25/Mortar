@@ -1,1 +1,1 @@
-g++ -Ofast -oacmp acmp.cpp -std=c++17
+g++ -Ofast -oacmp mortar.cpp sha1.cpp -std=c++17

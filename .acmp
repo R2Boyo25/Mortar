@@ -1,6 +1,6 @@
 {
     "_default": {
-        "out": "acmp",
+        "out": "mortar",
         "oarg": [
             "-Ofast",
             "-std=c++17"
@@ -9,7 +9,7 @@
         "obj": true
     },
     "d": {
-        "out": "acmp",
+        "out": "mortar",
         "oarg": [
             "-Ofast",
             "-std=c++17"
