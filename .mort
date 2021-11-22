@@ -15,6 +15,6 @@
             "-std=c++17"
         ],
         "com": "c++",
-        "after": "./acmp"
+        "after": "./mortar"
     }
 }

@@ -130,7 +130,7 @@ void writeFile(string fname, string content) {
 } 
 
 bool fileChanged(string filename) {
-    string fname = replaceExt(filename, "ahsh");
+    string fname = replaceExt(filename, "mhsh");
     if (exists(fname)) {
         if (readFile(fname) != genHash(filename)) {
             writeFile(fname, genHash(filename));
@@ -207,7 +207,11 @@ int comp(string com = "g++", vector<string> args = {}) {
 }
 
 json loadConfig() {
-    if ( exists(".acmp") ) {
+    if ( exists(".mort") ) {
+        json cfg = json::parse(readFile(".mort"));
+
+        return cfg;
+    } else if ( exists(".acmp") ) {
         json cfg = json::parse(readFile(".acmp"));
 
         return cfg;

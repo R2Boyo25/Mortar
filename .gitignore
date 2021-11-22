@@ -3,3 +3,5 @@ acmp
 .vscode
 *.o
 *.ahsh
+*.mhsh
+mortar
