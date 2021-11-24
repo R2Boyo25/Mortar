@@ -20,4 +20,6 @@ namespace util {
     std::vector<std::string> wrap(std::vector<std::string> towrap);
     std::string join(std::vector<std::string> v, std::string delimiter = " ");
     std::vector<std::string> split(std::string splitting, char delimiter);
+
+    std::vector< std::vector<std::string> > splitvs(std::vector<std::string> vec, int n);
 }

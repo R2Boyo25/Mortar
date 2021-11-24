@@ -5,6 +5,9 @@
             "-Ofast",
             "-std=c++17"
         ],
+        "l": [
+            "pthread"
+        ],
         "com": "c++",
         "obj": true
     },
@@ -13,6 +16,9 @@
         "oarg": [
             "-Ofast",
             "-std=c++17"
+        ],
+        "l": [
+            "pthread"
         ],
         "com": "c++",
         "after": "./mortar"

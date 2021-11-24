@@ -104,4 +104,29 @@ namespace util {
     bool startsWith(string str, string strwth) {
         return str.rfind(strwth, 0) == 0;
     }
+
+    std::vector< std::vector<string> > splitvs(std::vector<string> vec, int n) {
+        std::vector< std::vector<string> > vec_of_vecs(n); // https://stackoverflow.com/a/48739993
+
+        int quotient = vec.size() / n;
+        int remainder = vec.size() % n;
+        int first = 0;
+        int last;
+        for (int i = 0; i < n; ++i) {
+            if (i < remainder) {
+                last = first + quotient + 1;
+                vec_of_vecs[i] = std::vector<string>(vec.begin() + first, vec.begin() + last);
+                first = last;
+            } else if (i != n - 1) {
+                last = first +  quotient;
+                vec_of_vecs[i] = std::vector<string>(vec.begin() + first, vec.begin() + last);
+                first = last;
+            } else {
+                vec_of_vecs[i] = std::vector<string>(vec.begin() + first, vec.end());
+            }
+        }
+
+        return vec_of_vecs;
+    }
+
 }

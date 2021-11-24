@@ -8,6 +8,7 @@
 #include <any>
 #include "SHA1/sha1.hpp" // https://github.com/stbrumme/hash-library
 #include <stdio.h>
+#include <thread>
 
 #include "util.hpp"
 #include "conf.hpp"
@@ -17,6 +18,8 @@ using namespace std::filesystem;
 using namespace util;
 
 using namespace conf; 
+
+bool ERRORFOUND = false;
 
 string genHash(string fname) {
     SHA1 sha1;
@@ -31,17 +34,20 @@ void writeFile(string fname, string content) {
     out.close();
 } 
 
+void saveHash(string filename) {
+    string fname = replaceExt(filename, "mhsh");
+    writeFile(fname, genHash(filename));
+}
+
 bool fileChanged(string filename) {
     string fname = replaceExt(filename, "mhsh");
     if (exists(fname)) {
         if (readFile(fname) != genHash(filename)) {
-            writeFile(fname, genHash(filename));
             return true;
         } else {
             return false;
         }
     } else {
-        writeFile(fname, genHash(filename));
         return true;
     }
 }
@@ -54,10 +60,10 @@ int rawComp(string file, string com = "g++", vector<string> args = {}) {
     return system(ccomm);
 }
 
-tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args = {}) {
+tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args = {}, int THREADID = 1) {
     if (fileChanged(cppfile)) {
-        cout << "compiling " + cppfile << endl;
-        vector<string> nargs = {"-c"};
+        cout << "[" << THREADID << "]: " << cppfile.substr(2, cppfile.size() - 1) << endl;
+        vector<string> nargs = {"-c"}; 
         for (const string& arg : args) {
             if (!startsWith(arg, "-o")) {
                 nargs.push_back(arg);
@@ -66,20 +72,46 @@ tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args
             }
         }
 
-        return { replaceExt(cppfile, ".o"), rawComp(cppfile, com, nargs) };
+        int code = rawComp(cppfile, com, nargs);
+        
+        if (!code) {
+            saveHash(cppfile);
+        }
+
+        return { replaceExt(cppfile, ".o"), code };
     } else {
         return { replaceExt(cppfile, ".o"), 0 };
     }
 }
 
-int oComp(string com = "g++", vector<string> args = {}) {
+void threadComp(vector<string> files, string com = "g++", vector<string> args = {}, int THREADID = 1) {
+    for (const string& file : files) {
+        auto [ofile, scode] = compO(file, com, args, THREADID);
+        if (scode != 0) {
+            cout << "[MORTAR]: ERROR" << endl;
+            exit(scode);
+        }
+    }
+}
+
+int oComp(string com = "g++", vector<string> args = {}, int NTHREADS = 3) {
     string jargs = join(args);
     vector<string> wfiles = filterFiles(getFiles());
 
-    for (const string& file : wfiles) {
-        auto [ofile, scode] = compO(file, com, args);
-        if (scode != 0) {
-            exit(scode);
+    vector<thread> threads = {};
+
+    vector<vector<string>> sfiles = splitvs(wfiles, NTHREADS);
+
+    for (const vector<string>& chunk : sfiles) {
+        //for (int i = 0; i < sfiles.size(); i++) {
+        //vector<string> chunk = sfiles[i];
+        thread thrd(threadComp, chunk, com, args, threads.size()+1);
+        threads.push_back(move(thrd));
+    }
+
+    for (auto& thrd : threads) {
+        if (thrd.joinable()) {
+            thrd.join();
         }
     }
 
@@ -87,7 +119,7 @@ int oComp(string com = "g++", vector<string> args = {}) {
 
     string comm = join({com, jofiles, jargs});
 
-    cout << comm << endl;
+    cout << "[MORTAR]: " << "Combining object files" << endl;
 
     const char * ccomm = comm.c_str();
 
