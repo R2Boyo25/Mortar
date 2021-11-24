@@ -9,6 +9,7 @@
 #include "SHA1/sha1.hpp" // https://github.com/stbrumme/hash-library
 #include <stdio.h>
 #include <thread>
+#include <mutex>
 
 #include "util.hpp"
 #include "conf.hpp"
@@ -20,7 +21,7 @@ using namespace util;
 using namespace conf; 
 
 bool ERRORFOUND = false;
-bool CANPRINT = true;
+mutex CANPRINT;
 
 string genHash(string fname) {
     SHA1 sha1;
@@ -63,10 +64,9 @@ int rawComp(string file, string com = "g++", vector<string> args = {}) {
 
 tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args = {}, int THREADID = 1) {
     if (fileChanged(cppfile)) {
-        while (!CANPRINT) {}
-        CANPRINT = false;
+        CANPRINT.lock();
         cout << "[" << THREADID << "]: " << cppfile.substr(2, cppfile.size() - 1) << endl;
-        CANPRINT = true;
+        CANPRINT.unlock();
         vector<string> nargs = {"-c"}; 
         for (const string& arg : args) {
             if (!startsWith(arg, "-o")) {
