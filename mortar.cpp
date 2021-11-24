@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <thread>
 #include <mutex>
+#include <variant>
 
 #include "util.hpp"
 #include "conf.hpp"
@@ -145,7 +146,7 @@ int comp(string com = "g++", vector<string> args = {}) {
 }
 
 void compTarget(string target) {
-    auto config = loadConfig();
+    toml::table config = loadConfig();
     if (!config.count(target)) {
 
         cout << "Target " << target << " not found!" << endl;
@@ -158,38 +159,38 @@ void compTarget(string target) {
         string link = "";
         string out = "-oa.out";
 
-        auto ctarg = config.at(target);
+        std::map<toml::key, toml::value> ctarg = toml::get<std::map<toml::key, toml::value>>(config.at(target));
 
         if (ctarg.count("com")) {
-            com = ctarg.at("com");
+            com = get<string>(ctarg.at("com"));
         }
 
         if (ctarg.count("oarg")) {
-            oarg = join(ctarg.at("oarg"));
+            oarg = join(get<vector<string>>(ctarg["oarg"]));
         }
 
         if (ctarg.count("l")) {
-            for (string const& li : ctarg.at("l")) {
+            for (string const& li : get<vector<string>>(ctarg["l"])) {
                 link += "-l" + li + " ";
             }
         }
 
         if (ctarg.count("out")) {
-            out = "-o" + string(ctarg.at("out"));
+            out = "-o" + get<string>(ctarg.at("out"));
         }
         if (ctarg.count("obj")) {
-            if (!ctarg.at("obj")) {
+            if (!get<bool>(ctarg["obj"])) {
                 if (ctarg.count("after")) {
-                    if (comp(com, {out, oarg, link})) {
-                        int rcode = system(string(ctarg.at("after")).c_str());
+                    if (!comp(com, {out, oarg, link})) {
+                        int rcode = system(get<string>(ctarg.at("after")).c_str());
                     }
                 } else {
                     comp(com, {out, oarg, link});
                 }
             } else {
                 if (ctarg.count("after")) {
-                    if (oComp(com, {out, oarg, link})) {
-                        int rcode = system(string(ctarg.at("after")).c_str());
+                    if (!oComp(com, {out, oarg, link})) {
+                        int rcode = system(get<string>(ctarg.at("after")).c_str());
                     }
                 } else {
                     oComp(com, {out, oarg, link});
@@ -197,11 +198,11 @@ void compTarget(string target) {
             }
         } else {
             if (ctarg.count("after")) {
-                if (comp(com, {out, oarg, link})) {
-                    int rcode = system(string(ctarg.at("after")).c_str());
+                if (!oComp(com, {out, oarg, link})) {
+                    int rcode = system(get<string>(ctarg.at("after")).c_str());
                 }
             } else {
-                comp(com, {out, oarg, link});
+                oComp(com, {out, oarg, link});
             }
         }
     }

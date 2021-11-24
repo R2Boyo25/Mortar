@@ -1,0 +1,26 @@
+{
+    "_default": {
+        "out": "mortar",
+        "oarg": [
+            "-Ofast",
+            "-std=c++17"
+        ],
+        "l": [
+            "pthread"
+        ],
+        "com": "c++",
+        "obj": true
+    },
+    "d": {
+        "out": "mortar",
+        "oarg": [
+            "-Ofast",
+            "-std=c++17"
+        ],
+        "l": [
+            "pthread"
+        ],
+        "com": "c++",
+        "after": "./mortar"
+    }
+}
