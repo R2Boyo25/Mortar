@@ -23,6 +23,7 @@ using namespace conf;
 
 bool ERRORFOUND = false;
 mutex CANPRINT;
+mutex MODIFY_GLOBALS;
 int NTHREADS = std::thread::hardware_concurrency();
 bool TREEVIEW = true;
 int GLOBAL_COUNT = 0;
@@ -102,7 +103,7 @@ void threadComp(vector<string> files, string com = "g++", vector<string> args = 
     if (TREEVIEW) {
         CANPRINT.lock();
         cout << "[" << THREADID << "]: " << "Files assigned" << endl;
-        Popen("tree --fromfile", join(removeDotSlash(files), "\n")); 
+        Popen("tree --noreport --fromfile", join(removeDotSlash(files), "\n")); 
         CANPRINT.unlock();
     } 
     for (const string& file : files) {
