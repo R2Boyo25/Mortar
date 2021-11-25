@@ -11,6 +11,8 @@
 #include "SHA1/sha1.hpp" // https://github.com/stbrumme/hash-library
 
 namespace util {
+    std::vector<std::string> removeDotSlash(std::vector<std::string> dotted);
+    int Popen(std::string command, std::string STDIN);
     std::string readFile(std::string fname);
     bool startsWith(std::string str, std::string strwth);
     std::string replaceExt(std::string filename, std::string newext);

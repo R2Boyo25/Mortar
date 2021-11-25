@@ -23,7 +23,9 @@ using namespace conf;
 
 bool ERRORFOUND = false;
 mutex CANPRINT;
-int NTHREADS = 3;
+int NTHREADS = std::thread::hardware_concurrency();
+bool TREEVIEW = true;
+
 
 string genHash(string fname) {
     SHA1 sha1;
@@ -91,6 +93,12 @@ tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args
 }
 
 void threadComp(vector<string> files, string com = "g++", vector<string> args = {}, int THREADID = 1) {
+    if (TREEVIEW) {
+        CANPRINT.lock();
+        cout << "[" << THREADID << "]: " << "Files assigned" << endl;
+        Popen("tree --fromfile", join(removeDotSlash(files), "\n")); 
+        CANPRINT.unlock();
+    }
     for (const string& file : files) {
         auto [ofile, scode] = compO(file, com, args, THREADID);
         if (scode != 0) {
@@ -215,6 +223,10 @@ void compTarget(string target) {
 }
 
 int main(int argc, char* argv[]) {
+    if (!NTHREADS) {
+        NTHREADS = 1;
+    }
+
     std::vector<std::string> args(argv, argv + argc);
     if (argc == 1) {
         compTarget("_default");

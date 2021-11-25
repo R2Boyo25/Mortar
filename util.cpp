@@ -3,6 +3,26 @@ using namespace std;
 using namespace std::filesystem;
 
 namespace util {
+    vector<string> removeDotSlash(vector<string> dotted) {
+        vector<string> ndotted = {};
+        for (const string& filename : dotted) {
+            ndotted.push_back(filename.substr(2, filename.size() - 1));
+        }
+        return ndotted;
+    }
+
+    int Popen(string command, string STDIN) {
+        FILE * pFile = popen(command.c_str(), "w");
+
+        if(pFile == NULL)
+            return 1;
+        const char * psData = STDIN.c_str();
+        size_t nNumWritten = fwrite(psData, 1, STDIN.size(), pFile);
+
+        return pclose(pFile);
+        pFile = NULL;
+    }
+
     string readFile(string fname) {
         // https://stackoverflow.com/a/2602258/14639101
         std::ifstream t(fname);
