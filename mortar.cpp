@@ -23,6 +23,7 @@ using namespace conf;
 
 bool ERRORFOUND = false;
 mutex CANPRINT;
+int NTHREADS = 3;
 
 string genHash(string fname) {
     SHA1 sha1;
@@ -99,7 +100,7 @@ void threadComp(vector<string> files, string com = "g++", vector<string> args = 
     }
 }
 
-int oComp(string com = "g++", vector<string> args = {}, int NTHREADS = 3) {
+int oComp(string com = "g++", vector<string> args = {}) {
     string jargs = join(args);
     vector<string> wfiles = filterFiles(getFiles());
 
@@ -178,6 +179,11 @@ void compTarget(string target) {
         if (ctarg.count("out")) {
             out = "-o" + get<string>(ctarg.at("out"));
         }
+
+        if (ctarg.count("threads")) {
+            NTHREADS = get<int>(ctarg.at("threads"));
+        }
+
         if (ctarg.count("obj")) {
             if (!get<bool>(ctarg["obj"])) {
                 if (ctarg.count("after")) {
@@ -213,12 +219,18 @@ int main(int argc, char* argv[]) {
     if (argc == 1) {
         compTarget("_default");
     } else {
-        if (args[1] == "clean") {
+        if (args[1] == "-j") {
+            NTHREADS = stoi(args[2]);
+            compTarget("_default");
+        } else if (args[1] == "clean") {
             for (const string& file : filterFiles(getFiles(), {"mhsh", "ahsh", "o"})) {
                 remove( file );
             }
             return 0;
         } else {
+            if (args[2] == "-j") {
+                NTHREADS = stoi(args[3]);
+            }
             compTarget(argv[1]);
         }
     }
