@@ -11,15 +11,13 @@
 #include <thread>
 #include <mutex>
 #include <variant>
+#include "toml/toml.hpp"
 
 #include "util.hpp"
-#include "conf.hpp"
 
 using namespace std;
 using namespace std::filesystem;
 using namespace util;
-
-using namespace conf; 
 
 bool ERRORFOUND = false;
 mutex CANPRINT;
@@ -28,6 +26,30 @@ int NTHREADS = std::thread::hardware_concurrency();
 bool TREEVIEW = true;
 int GLOBAL_COUNT = 0;
 int GLOBAL_PROGRESS = 0;
+
+toml::table loadConfig() {
+    if ( exists(".mort") ) {
+        try {
+            toml::table tmltab = toml::parse(".mort");
+            return tmltab;
+        } catch (...) {
+            std::cout << "Failed to parse config file, not valid TOML" << std::endl;
+        }
+    } else if ( exists(".acmp") ) {
+        try {
+            toml::table tmltab = toml::parse(".acmp");
+            return tmltab;
+        } catch (...) {
+            std::cout << "Failed to parse config file, not valid TOML" << std::endl;
+        }
+    } else {
+        toml::table cfg = toml::parse("");
+
+        return cfg;
+    }
+    toml::table cfg = toml::parse("");
+    return cfg;
+}
 
 string genHash(string fname) {
     SHA1 sha1;
