@@ -25,7 +25,8 @@ bool ERRORFOUND = false;
 mutex CANPRINT;
 int NTHREADS = std::thread::hardware_concurrency();
 bool TREEVIEW = true;
-
+int GLOBAL_COUNT = 0;
+int GLOBAL_PROGRESS = 0;
 
 string genHash(string fname) {
     SHA1 sha1;
@@ -66,10 +67,10 @@ int rawComp(string file, string com = "g++", vector<string> args = {}) {
     return system(ccomm);
 }
 
-tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args = {}, int THREADID = 1) {
+tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args = {}, int THREADID = 1, string PROGRESS = "") {
     if (fileChanged(cppfile)) {
         CANPRINT.lock();
-        cout << "[" << THREADID << "]: " << cppfile.substr(2, cppfile.size() - 1) << endl;
+        cout << "[" << THREADID << ", " << PROGRESS << "]: " << cppfile.substr(2, cppfile.size() - 1) << endl;
         CANPRINT.unlock();
         vector<string> nargs = {"-c"}; 
         for (const string& arg : args) {
@@ -93,14 +94,25 @@ tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args
 }
 
 void threadComp(vector<string> files, string com = "g++", vector<string> args = {}, int THREADID = 1) {
+    if (files.size() == 0) {
+        return;
+    }
+    int THREAD_PROGRESS = 0;
+    int THREAD_COUNT = files.size();
     if (TREEVIEW) {
         CANPRINT.lock();
         cout << "[" << THREADID << "]: " << "Files assigned" << endl;
         Popen("tree --fromfile", join(removeDotSlash(files), "\n")); 
         CANPRINT.unlock();
-    }
+    } 
     for (const string& file : files) {
-        auto [ofile, scode] = compO(file, com, args, THREADID);
+        CANPRINT.lock();
+        THREAD_PROGRESS++;
+        GLOBAL_PROGRESS++;
+        string prog = "G" + to_string(GLOBAL_PROGRESS) + "/" + to_string(GLOBAL_COUNT) + " T" + to_string(THREAD_PROGRESS) + "/" + to_string(THREAD_COUNT);
+        CANPRINT.unlock();
+
+        auto [ofile, scode] = compO(file, com, args, THREADID, prog);
         if (scode != 0) {
             cout << "[MORTAR]: ERROR" << endl;
             exit(scode);
@@ -112,9 +124,19 @@ int oComp(string com = "g++", vector<string> args = {}) {
     string jargs = join(args);
     vector<string> wfiles = filterFiles(getFiles());
 
+    vector<string> pfiles = {};
+    
+    for (const string& file : wfiles) {
+        if (fileChanged(file)) {
+            pfiles.push_back(file);
+        }
+    }
+
     vector<thread> threads = {};
 
-    vector<vector<string>> sfiles = splitvs(wfiles, NTHREADS);
+    GLOBAL_COUNT = pfiles.size();
+
+    vector<vector<string>> sfiles = splitvs(pfiles, NTHREADS);
 
     for (const vector<string>& chunk : sfiles) {
         //for (int i = 0; i < sfiles.size(); i++) {
