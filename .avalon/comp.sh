@@ -1,1 +1,1 @@
-g++ -Ofast -omortar *.cpp SHA1/sha1.cpp -std=c++17 -lpthread
+g++ -Ofast -omortar *.cpp include/SHA1/sha1.cpp -std=c++17 -lpthread -Iinclude

@@ -6,7 +6,7 @@
 #include <fstream>
 #include <map>
 #include <any>
-#include "SHA1/sha1.hpp" // https://github.com/stbrumme/hash-library
+#include <SHA1/sha1.hpp> // https://github.com/stbrumme/hash-library
 #include <stdio.h>
 #include <thread>
 #include <mutex>
@@ -220,7 +220,11 @@ void compTarget(string target) {
         }
 
         if (ctarg.count("oarg")) {
-            oarg = join(get<vector<string>>(ctarg["oarg"]));
+            vector<string> coargs = get<vector<string>>(ctarg["oarg"]);
+            if (exists("include")) {
+                coargs.push_back("-I include");
+            }
+            oarg = join(coargs);
         }
 
         if (ctarg.count("l")) {
