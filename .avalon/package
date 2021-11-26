@@ -1,4 +1,6 @@
 {
+    "author": "R2Boyo25",
+    "repo": "Mortar",
     "binname": "mortar",
     "needsCompiled": true,
     "compileScript": ".avalon/comp.sh",
