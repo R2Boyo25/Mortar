@@ -23,7 +23,7 @@ bool ERRORFOUND = false;
 mutex CANPRINT;
 mutex MODIFY_GLOBALS;
 int NTHREADS = std::thread::hardware_concurrency();
-bool TREEVIEW = true;
+bool TREEVIEW = false;
 int GLOBAL_COUNT = 0;
 int GLOBAL_PROGRESS = 0;
 
@@ -239,6 +239,10 @@ void compTarget(string target) {
 
         if (ctarg.count("threads")) {
             NTHREADS = get<int>(ctarg.at("threads"));
+        }
+
+        if (ctarg.count("tree")) {
+            TREEVIEW = get<bool>(ctarg.at("tree"));
         }
 
         if (ctarg.count("obj")) {
