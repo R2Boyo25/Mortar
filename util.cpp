@@ -148,5 +148,4 @@ namespace util {
 
         return vec_of_vecs;
     }
-
 }

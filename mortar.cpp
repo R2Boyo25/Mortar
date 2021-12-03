@@ -12,6 +12,7 @@
 #include <mutex>
 #include <variant>
 #include "toml/toml.hpp"
+#include <chrono>
 
 #include "util.hpp"
 
@@ -122,6 +123,7 @@ void threadComp(vector<string> files, string com = "g++", vector<string> args = 
     }
     int THREAD_PROGRESS = 0;
     int THREAD_COUNT = files.size();
+    auto TIMESTART = chrono::system_clock::now();
     if (TREEVIEW) {
         CANPRINT.lock();
         cout << "[" << THREADID << "]: " << "Files assigned" << endl;
@@ -141,9 +143,14 @@ void threadComp(vector<string> files, string com = "g++", vector<string> args = 
             exit(scode);
         }
     }
+    auto TIMENOW = chrono::system_clock::now();
+    CANPRINT.lock();
+    cout << "[" << THREADID << "]: " << "Thread completed in " <<  chrono::duration_cast<chrono::seconds>(TIMENOW - TIMESTART).count() << " seconds\n";
+    CANPRINT.unlock();
 }
 
 int oComp(string com = "g++", vector<string> args = {}) {
+    auto MAINSTART = chrono::system_clock::now();
     string jargs = join(args);
     vector<string> wfiles = filterFiles(getFiles());
 
@@ -182,7 +189,11 @@ int oComp(string com = "g++", vector<string> args = {}) {
 
     const char * ccomm = comm.c_str();
 
-    return system(ccomm);
+    auto MAINNOW = chrono::system_clock::now();
+
+    int res = system(ccomm);
+    cout << "[MORTAR]: Compilation completed in " << chrono::duration_cast<chrono::seconds>(MAINNOW - MAINSTART).count() << " seconds\n";
+    return res;
 }
 
 int comp(string com = "g++", vector<string> args = {}) {
