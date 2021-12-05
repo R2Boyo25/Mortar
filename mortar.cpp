@@ -226,7 +226,15 @@ int comp(string com = "g++", vector<string> args = {}) {
 }
 
 void compTarget(string target) {
-    toml::table config = loadConfig();
+    toml::table config;
+
+    try {
+        config = loadConfig();
+    } catch (std::runtime_error) {
+        cout << "No .mort or .acmp file found, or it is improperly formatted" << endl;
+        exit(1);
+    }
+    
     if (!config.count(target)) {
 
         cout << "Target " << target << " not found!" << endl;
