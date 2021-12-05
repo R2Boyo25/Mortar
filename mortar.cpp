@@ -175,6 +175,11 @@ int oComp(string com = "g++", vector<string> args = {}) {
             USED++;
         }
     }
+    
+    if (USED == 0) {
+        cout << "[MORTAR]: No files to compile" << endl;
+        exit(0);
+    }
 
     cout << "[MORTAR]: Found " << NTHREADS << " threads, using " << USED << endl;
 
