@@ -168,6 +168,16 @@ int oComp(string com = "g++", vector<string> args = {}) {
 
     vector<vector<string>> sfiles = splitvs(pfiles, NTHREADS);
 
+    int USED = 0;
+
+    for (const vector<string>& chunk : sfiles) {
+        if (chunk.size() > 0) {
+            USED++;
+        }
+    }
+
+    cout << "[MORTAR]: Found " << NTHREADS << " threads, using " << USED << endl;
+
     for (const vector<string>& chunk : sfiles) {
         //for (int i = 0; i < sfiles.size(); i++) {
         //vector<string> chunk = sfiles[i];
