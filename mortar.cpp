@@ -304,8 +304,10 @@ int main(int argc, char* argv[]) {
             }
             return 0;
         } else {
-            if (args[2] == "-j") {
-                NTHREADS = stoi(args[3]);
+            if (argc == 4) {
+                if (args[2] == "-j") {
+                    NTHREADS = stoi(args[3]);
+                }
             }
             compTarget(argv[1]);
         }
