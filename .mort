@@ -14,11 +14,11 @@ obj = true
 out = "mortar"
 oarg = [
     "-Ofast",
-    "-std=c++17"
+    "-std=c++17",
+    "-g"
 ]
 l = [
     "pthread"
 ]
 com = "c++"
 obj = true
-after = "./mortar"

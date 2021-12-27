@@ -12,6 +12,7 @@
 #include <mutex>
 #include <variant>
 #include "toml/toml.hpp"
+#include <chrono>
 
 #include "util.hpp"
 
@@ -23,7 +24,7 @@ bool ERRORFOUND = false;
 mutex CANPRINT;
 mutex MODIFY_GLOBALS;
 int NTHREADS = std::thread::hardware_concurrency();
-bool TREEVIEW = true;
+bool TREEVIEW = false;
 int GLOBAL_COUNT = 0;
 int GLOBAL_PROGRESS = 0;
 
@@ -122,6 +123,7 @@ void threadComp(vector<string> files, string com = "g++", vector<string> args = 
     }
     int THREAD_PROGRESS = 0;
     int THREAD_COUNT = files.size();
+    auto TIMESTART = chrono::system_clock::now();
     if (TREEVIEW) {
         CANPRINT.lock();
         cout << "[" << THREADID << "]: " << "Files assigned" << endl;
@@ -141,9 +143,14 @@ void threadComp(vector<string> files, string com = "g++", vector<string> args = 
             exit(scode);
         }
     }
+    auto TIMENOW = chrono::system_clock::now();
+    CANPRINT.lock();
+    cout << "[" << THREADID << "]: " << "Thread completed in " <<  chrono::duration_cast<chrono::seconds>(TIMENOW - TIMESTART).count() << " seconds\n";
+    CANPRINT.unlock();
 }
 
 int oComp(string com = "g++", vector<string> args = {}) {
+    auto MAINSTART = chrono::system_clock::now();
     string jargs = join(args);
     vector<string> wfiles = filterFiles(getFiles());
 
@@ -160,6 +167,21 @@ int oComp(string com = "g++", vector<string> args = {}) {
     GLOBAL_COUNT = pfiles.size();
 
     vector<vector<string>> sfiles = splitvs(pfiles, NTHREADS);
+
+    int USED = 0;
+
+    for (const vector<string>& chunk : sfiles) {
+        if (chunk.size() > 0) {
+            USED++;
+        }
+    }
+    
+    if (USED == 0) {
+        cout << "[MORTAR]: No files to compile" << endl;
+        exit(0);
+    }
+
+    cout << "[MORTAR]: Found " << NTHREADS << " threads, using " << USED << endl;
 
     for (const vector<string>& chunk : sfiles) {
         //for (int i = 0; i < sfiles.size(); i++) {
@@ -182,7 +204,11 @@ int oComp(string com = "g++", vector<string> args = {}) {
 
     const char * ccomm = comm.c_str();
 
-    return system(ccomm);
+    auto MAINNOW = chrono::system_clock::now();
+
+    int res = system(ccomm);
+    cout << "[MORTAR]: Compilation completed in " << chrono::duration_cast<chrono::seconds>(MAINNOW - MAINSTART).count() << " seconds\n";
+    return res;
 }
 
 int comp(string com = "g++", vector<string> args = {}) {
@@ -200,7 +226,15 @@ int comp(string com = "g++", vector<string> args = {}) {
 }
 
 void compTarget(string target) {
-    toml::table config = loadConfig();
+    toml::table config;
+
+    try {
+        config = loadConfig();
+    } catch (std::runtime_error) {
+        cout << "No .mort or .acmp file found, or it is improperly formatted" << endl;
+        exit(1);
+    }
+    
     if (!config.count(target)) {
 
         cout << "Target " << target << " not found!" << endl;
@@ -239,6 +273,10 @@ void compTarget(string target) {
 
         if (ctarg.count("threads")) {
             NTHREADS = get<int>(ctarg.at("threads"));
+        }
+
+        if (ctarg.count("tree")) {
+            TREEVIEW = get<bool>(ctarg.at("tree"));
         }
 
         if (ctarg.count("obj")) {
@@ -289,8 +327,10 @@ int main(int argc, char* argv[]) {
             }
             return 0;
         } else {
-            if (args[2] == "-j") {
-                NTHREADS = stoi(args[3]);
+            if (argc == 4) {
+                if (args[2] == "-j") {
+                    NTHREADS = stoi(args[3]);
+                }
             }
             compTarget(argv[1]);
         }
