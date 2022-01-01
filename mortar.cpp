@@ -13,12 +13,14 @@
 #include <variant>
 #include "toml/toml.hpp"
 #include <chrono>
+#include <color.h>
 
 #include "util.hpp"
 
 using namespace std;
 using namespace std::filesystem;
 using namespace util;
+using namespace color;
 
 bool ERRORFOUND = false;
 mutex CANPRINT;
@@ -94,7 +96,7 @@ int rawComp(string file, string com = "g++", vector<string> args = {}) {
 tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args = {}, int THREADID = 1, string PROGRESS = "") {
     if (fileChanged(cppfile)) {
         CANPRINT.lock();
-        cout << "[" << THREADID << ", " << PROGRESS << "]: " << cppfile.substr(2, cppfile.size() - 1) << endl;
+        cout << CYN << "[" << ORN << THREADID << ", " << PROGRESS << CYN << "]: " << GRN << cppfile.substr(2, cppfile.size() - 1) << RES << endl;
         CANPRINT.unlock();
         vector<string> nargs = {"-c"}; 
         for (const string& arg : args) {
@@ -126,7 +128,7 @@ void threadComp(vector<string> files, string com = "g++", vector<string> args = 
     auto TIMESTART = chrono::system_clock::now();
     if (TREEVIEW) {
         CANPRINT.lock();
-        cout << "[" << THREADID << "]: " << "Files assigned" << endl;
+        cout << CYN << "[" << ORN << THREADID << CYN << "]: " << "Files assigned" << RES << endl;
         Popen("tree --noreport --fromfile", join(removeDotSlash(files), "\n")); 
         CANPRINT.unlock();
     } 
@@ -139,13 +141,13 @@ void threadComp(vector<string> files, string com = "g++", vector<string> args = 
 
         auto [ofile, scode] = compO(file, com, args, THREADID, prog);
         if (scode != 0) {
-            cout << "[MORTAR]: ERROR" << endl;
+            cout << RED << "[" <<ORN << "MORTAR" << RED << "]: ERROR" << RES << endl;
             exit(scode);
         }
     }
     auto TIMENOW = chrono::system_clock::now();
     CANPRINT.lock();
-    cout << "[" << THREADID << "]: " << "Thread completed in " <<  chrono::duration_cast<chrono::seconds>(TIMENOW - TIMESTART).count() << " seconds\n";
+    cout << CYN << "[" << ORN << THREADID << CYN << "]: " << "Thread completed in " <<  chrono::duration_cast<chrono::seconds>(TIMENOW - TIMESTART).count() << " seconds\n" << RES;
     CANPRINT.unlock();
 }
 
@@ -177,11 +179,11 @@ int oComp(string com = "g++", vector<string> args = {}) {
     }
     
     if (USED == 0) {
-        cout << "[MORTAR]: No files to compile" << endl;
+        cout << RED << "[" <<ORN << "MORTAR" << RED << "]: No files to compile" << RES << endl;
         exit(0);
     }
 
-    cout << "[MORTAR]: Found " << NTHREADS << " threads, using " << USED << endl;
+    cout << CYN << "[" <<ORN << "MORTAR" << CYN << "]: Found " << NTHREADS << " threads, using " << USED << RES << endl;
 
     for (const vector<string>& chunk : sfiles) {
         //for (int i = 0; i < sfiles.size(); i++) {
@@ -200,14 +202,14 @@ int oComp(string com = "g++", vector<string> args = {}) {
 
     string comm = join({com, jofiles, jargs});
 
-    cout << "[MORTAR]: " << "Combining object files" << endl;
+    cout << CYN << "[" <<ORN << "MORTAR" << CYN << "]: " << "Combining object files" << RES << endl;
 
     const char * ccomm = comm.c_str();
 
     auto MAINNOW = chrono::system_clock::now();
 
     int res = system(ccomm);
-    cout << "[MORTAR]: Compilation completed in " << chrono::duration_cast<chrono::seconds>(MAINNOW - MAINSTART).count() << " seconds\n";
+    cout << CYN << "[" <<ORN << "MORTAR" << CYN << "]: Compilation completed in " << chrono::duration_cast<chrono::seconds>(MAINNOW - MAINSTART).count() << " seconds\n" << RES;
     return res;
 }
 
