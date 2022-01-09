@@ -85,6 +85,40 @@ bool fileChanged(string filename) {
     }
 }
 
+void downloadDependencies(vector<map<string, toml::value>> deps) {
+    char BACKSLASH = '/';
+    if (deps.size()) {
+
+        int r;
+
+        r = system("mkdir tmp");
+
+        for (map<string, toml::value>& repo : deps) {
+            if (!(repo.count("url")) or !(repo.count("cpath")) or !(repo.count("ipath"))) {
+                std::cout << "Dependency missing git url, copy path, or include path" << std::endl;
+                r = system("rm -rf tmp");
+                exit(1);
+            } else {
+                // I have no idea what I just wrote here, 
+                // it is a mess because I didn't feel like messing with folder copying in C++
+                // r is to get the compiler to stop complaining
+
+                string user = split(get<string>(repo["url"]), BACKSLASH)[split(get<string>(repo["url"]), BACKSLASH).size()-2];
+                string gitrepo = split(get<string>(repo["url"]), BACKSLASH)[split(get<string>(repo["url"]), BACKSLASH).size()-1];
+                string folder = "tmp/" + user + "/" + gitrepo;
+                
+                r = system(("mkdir tmp/" + user).c_str());
+                r = system(("git clone " + get<string>(repo["url"]) + " " + folder).c_str());
+                r = system(("mkdir -p $(dirname \"./include/" + get<string>(repo["ipath"]) + "\")").c_str());
+                cout << "cp -r " + folder + "/" + get<string>(repo["cpath"]) + " include/" + get<string>(repo["ipath"]) << endl;
+                r = system(("cp -r " + folder + "/" + get<string>(repo["cpath"]) + " include/" + get<string>(repo["ipath"])).c_str());
+            }
+        }
+
+        r = system("rm -rf tmp");
+    }
+}
+
 int rawComp(string file, string com = "g++", vector<string> args = {}) {
     string comm = join({com, file, join(args)});
 
@@ -250,6 +284,10 @@ void compTarget(string target) {
         string out = "-oa.out";
 
         std::map<toml::key, toml::value> ctarg = toml::get<std::map<toml::key, toml::value>>(config.at(target));
+
+        if (ctarg.count("deps")) {
+            downloadDependencies(get<vector<map<string, toml::value>>>(ctarg["deps"]));
+        }
 
         if (ctarg.count("com")) {
             com = get<string>(ctarg.at("com"));
