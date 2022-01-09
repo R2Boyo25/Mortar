@@ -102,16 +102,18 @@ void downloadDependencies(vector<map<string, toml::value>> deps) {
                 // I have no idea what I just wrote here, 
                 // it is a mess because I didn't feel like messing with folder copying in C++
                 // r is to get the compiler to stop complaining
+                if (!exists("include/" + get<string>(repo["ipath"]))) {
+                    string user = split(get<string>(repo["url"]), BACKSLASH)[split(get<string>(repo["url"]), BACKSLASH).size()-2];
+                    string gitrepo = split(get<string>(repo["url"]), BACKSLASH)[split(get<string>(repo["url"]), BACKSLASH).size()-1];
+                    string folder = "tmp/" + user + "/" + gitrepo;
+                    
+                    cout << "Downloading dependency \"" << user << "/" << gitrepo << "\"..." << endl;
 
-                string user = split(get<string>(repo["url"]), BACKSLASH)[split(get<string>(repo["url"]), BACKSLASH).size()-2];
-                string gitrepo = split(get<string>(repo["url"]), BACKSLASH)[split(get<string>(repo["url"]), BACKSLASH).size()-1];
-                string folder = "tmp/" + user + "/" + gitrepo;
-                
-                r = system(("mkdir tmp/" + user).c_str());
-                r = system(("git clone " + get<string>(repo["url"]) + " " + folder).c_str());
-                r = system(("mkdir -p $(dirname \"./include/" + get<string>(repo["ipath"]) + "\")").c_str());
-                cout << "cp -r " + folder + "/" + get<string>(repo["cpath"]) + " include/" + get<string>(repo["ipath"]) << endl;
-                r = system(("cp -r " + folder + "/" + get<string>(repo["cpath"]) + " include/" + get<string>(repo["ipath"])).c_str());
+                    r = system(("mkdir tmp/" + user).c_str());
+                    r = system(("git clone -q --depth=1 " + get<string>(repo["url"]) + " " + folder).c_str());
+                    r = system(("mkdir -p $(dirname \"./include/" + get<string>(repo["ipath"]) + "\")").c_str());
+                    r = system(("cp -r " + folder + "/" + get<string>(repo["cpath"]) + " include/" + get<string>(repo["ipath"])).c_str());
+                }
             }
         }
 
