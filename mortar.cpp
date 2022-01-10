@@ -91,6 +91,10 @@ void downloadDependencies(vector<map<string, toml::value>> deps) {
 
         int r;
 
+        if (!exists("include")) {
+            r = system("mkdir include");
+        }
+
         r = system("mkdir tmp");
 
         for (map<string, toml::value>& repo : deps) {
