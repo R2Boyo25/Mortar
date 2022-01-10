@@ -124,6 +124,17 @@ void downloadDependencies(vector<map<string, toml::value>> deps) {
 int rawComp(string file, string com = "g++", vector<string> args = {}) {
     string comm = join({com, file, join(args)});
 
+    //{ { { { someprog; echo $? >&3; } | filter >&4; } 3>&1; } | { read xs; exit $xs; } } 4>&1
+    
+    /*
+    if (!system("which gppfilt > /dev/null 2>&1")) {
+        //comm = join({"{ { { {", com, file, join(args), "; echo $? >&3; } | gppfilt >&4; } 3>&1; } | { read xs; exit $xs; } } 4>&1"});
+        comm = join({"mispipe \"", com, file, join(args), "\"", "\"gppfilt\""});
+    } else {
+        comm = join({com, file, join(args)});
+    }
+    */
+
     const char * ccomm = comm.c_str();
 
     return system(ccomm);
@@ -245,7 +256,7 @@ int oComp(string com = "g++", vector<string> args = {}) {
     auto MAINNOW = chrono::system_clock::now();
 
     int res = system(ccomm);
-    cout << CYN << "[" <<ORN << "MORTAR" << CYN << "]: Compilation completed in " << chrono::duration_cast<chrono::seconds>(MAINNOW - MAINSTART).count() << " seconds\n" << RES;
+    cout << CYN << "[" << ORN << "MORTAR" << CYN << "]: Compilation completed in " << chrono::duration_cast<chrono::seconds>(MAINNOW - MAINSTART).count() << " seconds\n" << RES;
     return res;
 }
 
