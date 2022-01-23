@@ -12,6 +12,7 @@
 
 namespace util {
     std::vector<std::string> removeDotSlash(std::vector<std::string> dotted);
+    std::string removeDotSlash(std::string dotted);
     int Popen(std::string command, std::string STDIN);
     std::string readFile(std::string fname);
     bool startsWith(std::string str, std::string strwth);
@@ -24,4 +25,8 @@ namespace util {
     std::vector<std::string> split(std::string splitting, char delimiter);
 
     std::vector< std::vector<std::string> > splitvs(std::vector<std::string> vec, int n);
+    std::string getExt(std::string filename);
+    void makedirs(std::string filename);
+    std::vector<std::string> toBuild(std::vector<std::string> files);
+    std::string toBuilds(std::string file);
 }

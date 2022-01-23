@@ -148,4 +148,37 @@ namespace util {
 
         return vec_of_vecs;
     }
+
+    std::string getExt(std::string filename) {
+        string sfile = split(filename, '/').back();
+        if (sfile.find(".") == string::npos) {
+            return "";
+        }
+
+        string fext = split(sfile, '.').back();
+
+        return fext;
+    }
+
+    void makedirs(std::string filename) {
+        int r = system(("mkdir -p $(dirname \"./build/" + filename + "\")").c_str());
+    }
+
+    std::vector<std::string> toBuild(std::vector<std::string> files) {
+        std::vector<std::string> ofiles = {};
+
+        for (string& file : files) {
+            ofiles.push_back("./build/" + removeDotSlash(file));
+        }
+
+        return ofiles;
+    }
+
+    std::string toBuilds(std::string file) {
+        return "./build/" + removeDotSlash(file);
+    }
+
+    std::string removeDotSlash(std::string filename) {
+        return filename.substr(2, filename.size() - 1);
+    }
 }

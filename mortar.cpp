@@ -6,7 +6,7 @@
 #include <fstream>
 #include <map>
 #include <any>
-#include <SHA1/sha1.hpp> // https://github.com/stbrumme/hash-library
+
 #include <stdio.h>
 #include <thread>
 #include <mutex>
@@ -16,11 +16,13 @@
 #include <color.h>
 
 #include "util.hpp"
+#include "changed.hpp"
 
 using namespace std;
 using namespace std::filesystem;
 using namespace util;
 using namespace color;
+using namespace changed;
 
 bool ERRORFOUND = false;
 mutex CANPRINT;
@@ -52,37 +54,6 @@ toml::table loadConfig() {
     }
     toml::table cfg = toml::parse("");
     return cfg;
-}
-
-string genHash(string fname) {
-    SHA1 sha1;
-    string fcont = readFile(fname);
-
-    return sha1(fcont);
-}
-
-void writeFile(string fname, string content) {
-    std::ofstream out(fname);
-    out << content;
-    out.close();
-} 
-
-void saveHash(string filename) {
-    string fname = replaceExt(filename, "mhsh");
-    writeFile(fname, genHash(filename));
-}
-
-bool fileChanged(string filename) {
-    string fname = replaceExt(filename, "mhsh");
-    if (exists(fname)) {
-        if (readFile(fname) != genHash(filename)) {
-            return true;
-        } else {
-            return false;
-        }
-    } else {
-        return true;
-    }
 }
 
 void downloadDependency(map<string, toml::value> repo) {
@@ -167,7 +138,7 @@ int rawComp(string file, string com = "g++", vector<string> args = {}) {
 }
 
 tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args = {}, int THREADID = 1, string PROGRESS = "") {
-    if (fileChanged(cppfile)) {
+    if (fileChanged(cppfile)) { 
         CANPRINT.lock();
         cout << CYN << "[" << ORN << THREADID << ", " << PROGRESS << CYN << "]: " << GRN << cppfile.substr(2, cppfile.size() - 1) << RES << endl;
         CANPRINT.unlock();
@@ -176,7 +147,7 @@ tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args
             if (!startsWith(arg, "-o")) {
                 nargs.push_back(arg);
             } else {
-                nargs.push_back("-o" + replaceExt(cppfile, "o"));
+                nargs.push_back(("-o" + string("./build/")) + removeDotSlash(replaceExt(cppfile, "o")));
             }
         }
 
@@ -186,9 +157,9 @@ tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args
             saveHash(cppfile);
         }
 
-        return { replaceExt(cppfile, ".o"), code };
+        return { "./build/" + replaceExt(cppfile, ".o"), code };
     } else {
-        return { replaceExt(cppfile, ".o"), 0 };
+        return { "./build/" + replaceExt(cppfile, ".o"), 0 };
     }
 }
 
@@ -232,6 +203,7 @@ int oComp(string com = "g++", vector<string> args = {}) {
     vector<string> pfiles = {};
     
     for (const string& file : wfiles) {
+        makedirs(file);
         if (fileChanged(file)) {
             pfiles.push_back(file);
         }
@@ -271,11 +243,11 @@ int oComp(string com = "g++", vector<string> args = {}) {
         }
     }
 
-    string jofiles = join(wrap(replaceExts(wfiles, "o")));
+    string jofiles = join(wrap(toBuild(replaceExts(wfiles, "o"))));
 
     string comm = join({com, jofiles, jargs});
 
-    cout << CYN << "[" <<ORN << "MORTAR" << CYN << "]: " << "Combining object files" << RES << endl;
+    cout << CYN << "[" << ORN << "MORTAR" << CYN << "]: " << "Combining object files" << RES << endl;
 
     const char * ccomm = comm.c_str();
 
@@ -308,6 +280,10 @@ void compTarget(string target) {
     } catch (std::runtime_error) {
         cout << "No .mort or .acmp file found, or it is improperly formatted" << endl;
         exit(1);
+    }
+
+    if (!exists("build")) {
+        int r = system("mkdir build");
     }
     
     if (!config.count(target)) {
@@ -401,7 +377,7 @@ int main(int argc, char* argv[]) {
             NTHREADS = stoi(args[2]);
             compTarget("_default");
         } else if (args[1] == "clean") {
-            for (const string& file : filterFiles(getFiles(), {"mhsh", "ahsh", "o"})) {
+            for (const string& file : filterFiles(getFiles("./build"), {"mhsh", "ahsh", "o"})) {
                 remove( file );
             }
             return 0;
