@@ -28,5 +28,11 @@ namespace util {
     std::string getExt(std::string filename);
     void makedirs(std::string filename);
     std::vector<std::string> toBuild(std::vector<std::string> files);
-    std::string toBuilds(std::string file);
-}
+    std::string toBuild(std::string file);
+
+    std::string lstrip(std::string text, std::string toremove = " ");
+    std::string rstrip(std::string text, std::string toremove = " ");
+    std::string strip(std::string text, std::string toremove = " ");
+    std::string stripComment(std::string text);
+    std::string dirName(std::string filename);
+} 

@@ -174,11 +174,52 @@ namespace util {
         return ofiles;
     }
 
-    std::string toBuilds(std::string file) {
+    std::string toBuild(std::string file) {
         return "./build/" + removeDotSlash(file);
     }
 
     std::string removeDotSlash(std::string filename) {
         return filename.substr(2, filename.size() - 1);
+    }
+
+    std::string lstrip(std::string text, std::string toremove) {
+        while (string(1, text[0]) == toremove) {
+            text = text.erase(0, 1);
+        }
+
+        return text;
+    }
+
+    std::string rstrip(std::string text, std::string toremove) {
+        while (string(1, text[text.size()-1]) == toremove) {
+            text = text.erase(text.size()-1, 1);
+        }
+
+        return text;
+    }
+
+    std::string strip(std::string text, std::string toremove) {
+        text = lstrip(text, toremove);
+        text = rstrip(text, toremove);
+
+        return text;
+    }
+
+    std::string stripComment(std::string text) {
+        if (text.find("//") != string::npos) {
+            text = text.erase(text.find("//") - 1);
+        }
+
+        return text;
+    }
+
+    std::string dirName(std::string filename) {
+        string directory;
+        const size_t last_slash_idx = filename.rfind('/');
+        if (std::string::npos != last_slash_idx) {
+            return filename.substr(0, last_slash_idx);
+        } else {
+            return "./";
+        }
     }
 }

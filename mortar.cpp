@@ -14,6 +14,7 @@
 #include "toml/toml.hpp"
 #include <chrono>
 #include <color.h>
+#include<tuple>
 
 #include "util.hpp"
 #include "changed.hpp"
@@ -138,7 +139,8 @@ int rawComp(string file, string com = "g++", vector<string> args = {}) {
 }
 
 tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args = {}, int THREADID = 1, string PROGRESS = "") {
-    if (fileChanged(cppfile)) { 
+    std::tuple<bool, std::vector<std::string>> res = fileChanged(cppfile);
+    if (get<0>(res)) { 
         CANPRINT.lock();
         cout << CYN << "[" << ORN << THREADID << ", " << PROGRESS << CYN << "]: " << GRN << cppfile.substr(2, cppfile.size() - 1) << RES << endl;
         CANPRINT.unlock();
@@ -155,6 +157,10 @@ tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args
         
         if (!code) {
             saveHash(cppfile);
+            for (string& f : get<1>(res)) {
+                makedirs(f);
+                saveHash(f);
+            }
         }
 
         return { "./build/" + replaceExt(cppfile, ".o"), code };
@@ -204,7 +210,8 @@ int oComp(string com = "g++", vector<string> args = {}) {
     
     for (const string& file : wfiles) {
         makedirs(file);
-        if (fileChanged(file)) {
+        std::tuple<bool, std::vector<std::string>> res = fileChanged(file);
+        if (get<0>(res)) {
             pfiles.push_back(file);
         }
     }
