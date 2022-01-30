@@ -1,8 +1,11 @@
+#pragma once
+
 #include<SHA1/sha1.hpp> // https://github.com/stbrumme/hash-library
 #include<string>
-#include<filesystem>
+#include<filesystem> 
 #include<vector>
 #include<tuple>
+#include<set>
 
 #include"util.hpp"
 

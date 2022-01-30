@@ -4,6 +4,8 @@ using namespace std;
 using namespace std::filesystem;
 using namespace util;
 
+//set<string> gincludes = {};
+
 namespace changed {
     string genHash(string fname) {
         SHA1 sha1;
@@ -49,6 +51,11 @@ namespace changed {
                 string fname = strip(line.substr(8, line.size()-1));
                 if (fname[0] != '<') {
                     fname = strip(fname, "\"");
+                    /*if (!(gincludes.find(getPath(dirName(filename), fname)) != gincludes.end())) {
+                        cout << getPath(dirName(filename), fname) << endl;
+                        gincludes.insert(getPath(dirName(filename), fname));
+                        includes(getPath(dirName(filename), fname));
+                    }*/
                     out.push_back(getPath(dirName(filename), fname));
                     for (string& f : includes(getPath(dirName(filename), fname))) {
                         out.push_back(getPath(dirName(filename), f));
@@ -57,6 +64,7 @@ namespace changed {
             }
         }
 
+        //vector<string> out(gincludes.begin(), gincludes.end());
         return out;
     }
 
@@ -75,12 +83,25 @@ namespace changed {
     file_time_type modTime(string fname) {
         return std::filesystem::last_write_time(fname);
     }
-
+ 
     bool fileChanged(string filename) {
-        if (getExt(filename) == "cpp" or getExt(filename) == "c") {
-            return ((modTime(filename) > modTime(outname)) or !exists((string("./build/")) + removeDotSlash(replaceExt(filename, "o"))));
+        //cout << filename << endl;
+        if (exists(outname)) {
+            if (includesChanged(filename).size() > 0) {
+                return true;
+            } else if (getExt(filename) == "cpp" or getExt(filename) == "c") {
+                return ((modTime(filename) > modTime(outname)) or !exists((string("./build/")) + removeDotSlash(replaceExt(filename, "o"))));
+            } else {
+                return modTime(filename) > modTime(outname);
+            } 
         } else {
-            return modTime(filename) > modTime(outname);
+            if (includesChanged(filename).size() > 0) {
+                return true;
+            } else if (getExt(filename) == "cpp" or getExt(filename) == "c") {
+                return ((modTime(filename) > modTime(string("./build/") + removeDotSlash(replaceExt(filename, "o")))));
+            } else {
+                return true;
+            }
         }
     }
 }
