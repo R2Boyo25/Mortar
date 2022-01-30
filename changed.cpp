@@ -31,8 +31,9 @@ namespace changed {
                 return "./" + filename;
             } else if (exists("./include/" + filename)) {
                 return "./include/" + filename;
+            } else {
+                return "";
             }
-            return "e";
         } else {
             return filename;
         }
@@ -63,7 +64,7 @@ namespace changed {
         vector<string> changed = {};
 
         for (string& f : includes(filename)) {
-            if (rFileChanged(f)) {
+            if (fileChanged(f)) {
                 changed.push_back(f);
             }
         }
@@ -71,29 +72,15 @@ namespace changed {
         return changed;
     }
 
-    bool rFileChanged(string filename) {
-        string fname = "./build/" + removeDotSlash(filename + ".mhsh");//replaceExt(filename, "mhsh");
-        if (exists(fname)) {
-            if (readFile(fname) != genHash(filename)) {
-                return true;
-            } else {
-                return false;
-            }
-        } else {
-            return true;
-        }
+    file_time_type modTime(string fname) {
+        return std::filesystem::last_write_time(fname);
     }
 
-    std::tuple<bool, vector<string>> fileChanged(string filename) {
-        string fname = "./build/" + removeDotSlash(filename + ".mhsh");//replaceExt(filename, "mhsh");
-        if (exists(fname)) {
-            if (readFile(fname) != genHash(filename)) {
-                return {true, includesChanged(filename)};
-            } else {
-                return {includesChanged(filename).size() > 0, includesChanged(filename)};
-            }
+    bool fileChanged(string filename) {
+        if (getExt(filename) == "cpp" or getExt(filename) == "c") {
+            return ((modTime(filename) > modTime(outname)) or !exists((string("./build/")) + removeDotSlash(replaceExt(filename, "o"))));
         } else {
-            return {true, includesChanged(filename)};
+            return modTime(filename) > modTime(outname);
         }
     }
 }

@@ -32,6 +32,7 @@ int NTHREADS = std::thread::hardware_concurrency();
 bool TREEVIEW = false;
 int GLOBAL_COUNT = 0;
 int GLOBAL_PROGRESS = 0;
+string outname = "";
 
 toml::table loadConfig() {
     if ( exists(".mort") ) {
@@ -139,8 +140,7 @@ int rawComp(string file, string com = "g++", vector<string> args = {}) {
 }
 
 tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args = {}, int THREADID = 1, string PROGRESS = "") {
-    std::tuple<bool, std::vector<std::string>> res = fileChanged(cppfile);
-    if (get<0>(res)) { 
+    if (fileChanged(cppfile)) { 
         CANPRINT.lock();
         cout << CYN << "[" << ORN << THREADID << ", " << PROGRESS << CYN << "]: " << GRN << cppfile.substr(2, cppfile.size() - 1) << RES << endl;
         CANPRINT.unlock();
@@ -149,18 +149,18 @@ tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args
             if (!startsWith(arg, "-o")) {
                 nargs.push_back(arg);
             } else {
-                nargs.push_back(("-o" + string("./build/")) + removeDotSlash(replaceExt(cppfile, "o")));
+                nargs.push_back(("-o" + string("./build/")) + removeDotSlash(replaceExt(cppfile, "o"))); 
             }
         }
 
         int code = rawComp(cppfile, com, nargs);
         
         if (!code) {
-            saveHash(cppfile);
+            /*saveHash(cppfile);
             for (string& f : get<1>(res)) {
                 makedirs(f);
                 saveHash(f);
-            }
+            }*/
         }
 
         return { "./build/" + replaceExt(cppfile, ".o"), code };
@@ -210,8 +210,7 @@ int oComp(string com = "g++", vector<string> args = {}) {
     
     for (const string& file : wfiles) {
         makedirs(file);
-        std::tuple<bool, std::vector<std::string>> res = fileChanged(file);
-        if (get<0>(res)) {
+        if (fileChanged(file)) {
             pfiles.push_back(file);
         }
     }
@@ -330,6 +329,7 @@ void compTarget(string target) {
         }
 
         if (ctarg.count("out")) {
+            outname = get<string>(ctarg.at("out"));
             out = "-o" + get<string>(ctarg.at("out"));
         }
 
