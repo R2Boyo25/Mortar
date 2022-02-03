@@ -4,7 +4,7 @@
 //          https://www.boost.org/LICENSE_1_0.txt)
 #ifndef TOML_LEXER_HPP
 #define TOML_LEXER_HPP
-#include "combinator.hpp"
+#include <toml/combinator.hpp>
 #include <boost/static_assert.hpp>
 #include <boost/optional.hpp>
 #include <stdexcept>

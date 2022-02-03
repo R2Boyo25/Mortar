@@ -8,7 +8,6 @@
 #include <fstream>
 #include <map>
 #include <any>
-#include "SHA1/sha1.hpp" // https://github.com/stbrumme/hash-library
 
 namespace util {
     std::vector<std::string> removeDotSlash(std::vector<std::string> dotted);
@@ -19,6 +18,7 @@ namespace util {
     std::string replaceExt(std::string filename, std::string newext);
     std::vector<std::string> replaceExts(std::vector<std::string> files, std::string newext);
     std::vector<std::string> filterFiles(std::vector<std::string> files, std::vector<std::string> exts = {"cpp", "c"});
+    std::vector<std::string> orderExts(std::vector<std::string> files);
     std::vector<std::string> getFiles(std::string dir = "./");
     std::vector<std::string> wrap(std::vector<std::string> towrap);
     std::string join(std::vector<std::string> v, std::string delimiter = " ");

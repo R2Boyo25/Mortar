@@ -5,16 +5,14 @@
 #include <sstream>
 #include <fstream>
 #include <map>
-#include <any>
 
 #include <stdio.h>
 #include <thread>
 #include <mutex>
-#include <variant>
-#include "toml/toml.hpp"
+#include <toml/toml.hpp>
 #include <chrono>
 #include <color.h>
-#include<tuple>
+#include <tuple>
 
 #include "util.hpp"
 #include "changed.hpp"
@@ -29,10 +27,10 @@ bool ERRORFOUND = false;
 mutex CANPRINT;
 mutex MODIFY_GLOBALS;
 int NTHREADS = std::thread::hardware_concurrency();
-bool TREEVIEW = false;
 int GLOBAL_COUNT = 0;
 int GLOBAL_PROGRESS = 0;
-string outname = "";
+string outname = ""; 
+bool compileheaders = false;
 
 toml::table loadConfig() {
     if ( exists(".mort") ) {
@@ -49,7 +47,7 @@ toml::table loadConfig() {
         } catch (...) {
             std::cout << "Failed to parse config file, not valid TOML" << std::endl;
         }
-    } else {
+    } else { 
         toml::table cfg = toml::parse("");
 
         return cfg;
@@ -144,12 +142,27 @@ tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args
         CANPRINT.lock();
         cout << CYN << "[" << ORN << THREADID << ", " << PROGRESS << CYN << "]: " << GRN << cppfile.substr(2, cppfile.size() - 1) << RES << endl;
         CANPRINT.unlock();
-        vector<string> nargs = {"-c"}; 
+        vector<string> nargs;
+        if (getExt(cppfile) == "cpp" or getExt(cppfile) == "c") {
+            nargs = {"-c", "-Ibuild"}; 
+        } else {
+            //nargs = {"-x", "-Ibuild"}; 
+            nargs = {"-Ibuild"}; 
+        }
         for (const string& arg : args) {
-            if (!startsWith(arg, "-o")) {
+            if (!startsWith(arg, "-o") and !startsWith(arg, "-l")) {
                 nargs.push_back(arg);
-            } else {
-                nargs.push_back(("-o" + string("./build/")) + removeDotSlash(replaceExt(cppfile, "o"))); 
+            } else if (startsWith(arg, "-l")) {
+                if (getExt(cppfile) == "cpp" or getExt(cppfile) == "c") {
+                    nargs.push_back(arg);
+                }
+            } else if (startsWith(arg, "-o")) {
+                if (getExt(cppfile) == "cpp" or getExt(cppfile) == "c") {
+                    nargs.push_back( "-o" + string("./build/") + removeDotSlash(cppfile + ".o"));
+                } else {
+                    nargs.push_back( "-o" + string("./build/") + removeDotSlash(cppfile + ".gch"));
+                }
+                //nargs.push_back(("-o" + string("./build/")) + removeDotSlash(cppfile + ".o")); 
             }
         }
 
@@ -176,12 +189,7 @@ void threadComp(vector<string> files, string com = "g++", vector<string> args = 
     int THREAD_PROGRESS = 0;
     int THREAD_COUNT = files.size();
     auto TIMESTART = chrono::system_clock::now();
-    if (TREEVIEW) {
-        CANPRINT.lock();
-        cout << CYN << "[" << ORN << THREADID << CYN << "]: " << "Files assigned" << RES << endl;
-        Popen("tree --noreport --fromfile", join(removeDotSlash(files), "\n")); 
-        CANPRINT.unlock();
-    } 
+
     for (const string& file : files) {
         CANPRINT.lock();
         THREAD_PROGRESS++;
@@ -195,6 +203,7 @@ void threadComp(vector<string> files, string com = "g++", vector<string> args = 
             exit(scode);
         }
     }
+
     auto TIMENOW = chrono::system_clock::now();
     CANPRINT.lock();
     cout << CYN << "[" << ORN << THREADID << CYN << "]: " << "Thread completed in " <<  chrono::duration_cast<chrono::seconds>(TIMENOW - TIMESTART).count() << " seconds\n" << RES;
@@ -204,7 +213,12 @@ void threadComp(vector<string> files, string com = "g++", vector<string> args = 
 int oComp(string com = "g++", vector<string> args = {}) {
     auto MAINSTART = chrono::system_clock::now();
     string jargs = join(args);
-    vector<string> wfiles = filterFiles(getFiles());
+    vector<string> wfiles;
+    if (compileheaders) { 
+        wfiles = orderExts(filterFiles(getFiles(), {"c", "cpp", "h", "hpp"}));
+    } else {
+        wfiles = orderExts(filterFiles(getFiles(), {"c", "cpp"}));
+    }
 
     vector<string> pfiles = {};
     
@@ -230,11 +244,11 @@ int oComp(string com = "g++", vector<string> args = {}) {
     }
     
     if (USED == 0) {
-        cout << RED << "[" <<ORN << "MORTAR" << RED << "]: No files to compile" << RES << endl;
+        cout << RED << "[" << ORN << "MORTAR" << RED << "]: No files to compile" << RES << endl;
         exit(0);
     }
 
-    cout << CYN << "[" <<ORN << "MORTAR" << CYN << "]: Found " << NTHREADS << " threads, using " << USED << RES << endl;
+    cout << CYN << "[" << ORN << "MORTAR" << CYN << "]: Found " << NTHREADS << " threads, using " << USED << RES << endl;
 
     for (const vector<string>& chunk : sfiles) {
         //for (int i = 0; i < sfiles.size(); i++) {
@@ -249,7 +263,17 @@ int oComp(string com = "g++", vector<string> args = {}) {
         }
     }
 
-    string jofiles = join(wrap(toBuild(replaceExts(wfiles, "o"))));
+    vector<string> efiles = {};
+    
+    for (string& file : wfiles) {
+        if (getExt(file) == "c" or getExt(file) == "cpp") {
+            efiles.push_back(file + ".o");
+        } /*else {
+            efiles.push_back(file + ".gch");
+        }*/
+    }
+
+    string jofiles = join(wrap(toBuild(efiles)));
 
     string comm = join({com, jofiles, jargs});
 
@@ -262,20 +286,6 @@ int oComp(string com = "g++", vector<string> args = {}) {
     int res = system(ccomm);
     cout << CYN << "[" << ORN << "MORTAR" << CYN << "]: Compilation completed in " << chrono::duration_cast<chrono::seconds>(MAINNOW - MAINSTART).count() << " seconds\n" << RES;
     return res;
-}
-
-int comp(string com = "g++", vector<string> args = {}) {
-    string jargs = join(args);
-    vector<string> wfiles = wrap(filterFiles(getFiles()));
-    string jfiles = join(wfiles);
-
-    string comm = join({com, jfiles, jargs});
-
-    const char * ccomm = comm.c_str();
-
-    cout << comm << endl;
-
-    return system(ccomm);
 }
 
 void compTarget(string target) {
@@ -317,7 +327,7 @@ void compTarget(string target) {
         if (ctarg.count("oarg")) {
             vector<string> coargs = get<vector<string>>(ctarg["oarg"]);
             if (exists("include")) {
-                coargs.push_back("-I include");
+                coargs.push_back("-Iinclude");
             }
             oarg = join(coargs);
         }
@@ -337,36 +347,16 @@ void compTarget(string target) {
             NTHREADS = get<int>(ctarg.at("threads"));
         }
 
-        if (ctarg.count("tree")) {
-            TREEVIEW = get<bool>(ctarg.at("tree"));
+        if (ctarg.count("compileHeaders")) {
+            compileheaders = get<bool>(ctarg.at("compileHeaders")); 
         }
 
-        if (ctarg.count("obj")) {
-            if (!get<bool>(ctarg["obj"])) {
-                if (ctarg.count("after")) {
-                    if (!comp(com, {out, oarg, link})) {
-                        int rcode = system(get<string>(ctarg.at("after")).c_str());
-                    }
-                } else {
-                    comp(com, {out, oarg, link});
-                }
-            } else {
-                if (ctarg.count("after")) {
-                    if (!oComp(com, {out, oarg, link})) {
-                        int rcode = system(get<string>(ctarg.at("after")).c_str());
-                    }
-                } else {
-                    oComp(com, {out, oarg, link});
-                }
-            }
+        if (ctarg.count("after")) {
+            if (!oComp(com, {out, oarg, link})) {
+                int rcode = system(get<string>(ctarg.at("after")).c_str());
+            } 
         } else {
-            if (ctarg.count("after")) {
-                if (!oComp(com, {out, oarg, link})) {
-                    int rcode = system(get<string>(ctarg.at("after")).c_str());
-                }
-            } else {
-                oComp(com, {out, oarg, link});
-            }
+            oComp(com, {out, oarg, link});
         }
     }
 }
@@ -384,7 +374,7 @@ int main(int argc, char* argv[]) {
             NTHREADS = stoi(args[2]);
             compTarget("_default");
         } else if (args[1] == "clean") {
-            for (const string& file : filterFiles(getFiles("./build"), {"mhsh", "ahsh", "o"})) {
+            for (const string& file : filterFiles(getFiles("./build"), {"mhsh", "ahsh", "o", "gch"})) {
                 remove( file );
             }
             return 0;

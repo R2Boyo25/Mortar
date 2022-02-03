@@ -80,6 +80,31 @@ namespace util {
         return files;
     }
 
+    vector<string> orderExts(vector<string> files) {
+        vector<string> headers = {};
+        vector<string> source  = {};
+
+        for (string& file : files) {
+            if (getExt(file) == "h" or getExt(file) == "hpp") {
+                headers.push_back(file);
+            } else if (getExt(file) == "c" or getExt(file) == "cpp") {
+                source.push_back(file);
+            }
+        }
+
+        vector<string> out = {};
+
+        for (string& file : headers) {
+            out.push_back(file);
+        }
+
+        for (string& file : source) {
+            out.push_back(file);
+        }
+
+        return out;
+    }
+
     vector<string> filterFiles(vector<string> files, vector<string> exts) {
         vector<string> ffiles = {};
 

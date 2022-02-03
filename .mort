@@ -7,9 +7,8 @@ oarg = [
 l = [
     "pthread"
 ]
-com = "c++"
-obj = true
-
+com = "g++"
+ 
 [d]
 out = "mortar"
 oarg = [
@@ -20,5 +19,4 @@ oarg = [
 l = [
     "pthread"
 ]
-com = "c++"
-obj = true
+com = "g++"

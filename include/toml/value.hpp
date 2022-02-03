@@ -4,7 +4,7 @@
 //          https://www.boost.org/LICENSE_1_0.txt)
 #ifndef TOML_VALUE_HPP
 #define TOML_VALUE_HPP
-#include "type_traits.hpp"
+#include <toml/type_traits.hpp>
 #include <boost/config.hpp>
 #include <boost/blank.hpp>
 #include <boost/type_traits.hpp>

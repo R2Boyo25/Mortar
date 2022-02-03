@@ -4,7 +4,7 @@
 //          https://www.boost.org/LICENSE_1_0.txt)
 #ifndef TOML_TYPES_HPP
 #define TOML_TYPES_HPP
-#include "strings.hpp"
+#include <toml/strings.hpp>
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/local_time/local_time.hpp>

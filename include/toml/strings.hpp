@@ -4,7 +4,7 @@
 //          https://www.boost.org/LICENSE_1_0.txt)
 #ifndef TOML_STRINGS_HPP
 #define TOML_STRINGS_HPP
-#include "predefine.hpp"
+#include <toml/predefine.hpp>
 #include <boost/config.hpp>
 #include <string>
 #include <ostream>

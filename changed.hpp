@@ -1,6 +1,5 @@
 #pragma once
 
-#include<SHA1/sha1.hpp> // https://github.com/stbrumme/hash-library
 #include<string>
 #include<filesystem> 
 #include<vector>

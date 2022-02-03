@@ -4,9 +4,9 @@
 //          https://www.boost.org/LICENSE_1_0.txt)
 #ifndef TOML_PARSER_HPP
 #define TOML_PARSER_HPP
-#include "result.hpp"
-#include "lexer.hpp"
-#include "value.hpp"
+#include <toml/result.hpp>
+#include <toml/lexer.hpp>
+#include <toml/value.hpp>
 #include <boost/config.hpp>
 #include <boost/static_assert.hpp>
 #include <boost/core/addressof.hpp>

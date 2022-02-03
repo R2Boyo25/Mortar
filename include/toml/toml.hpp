@@ -5,9 +5,9 @@
 #ifndef TOML_TOML_HPP
 #define TOML_TOML_HPP
 
-#include "predefine.hpp"
-#include "parser.hpp"
-#include "serializer.hpp"
-#include "get.hpp"
+#include <toml/predefine.hpp>
+#include <toml/parser.hpp>
+#include <toml/serializer.hpp>
+#include <toml/get.hpp>
 
 #endif // TOML_TOML_HPP

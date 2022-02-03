@@ -4,7 +4,7 @@
 //          https://www.boost.org/LICENSE_1_0.txt)
 #ifndef TOML_COMBINATOR_HPP
 #define TOML_COMBINATOR_HPP
-#include "predefine.hpp"
+#include <toml/predefine.hpp>
 #include <boost/optional.hpp>
 #include <string>
 

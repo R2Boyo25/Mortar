@@ -4,7 +4,8 @@
 //          https://www.boost.org/LICENSE_1_0.txt)
 #ifndef TOML_SERIALIZER_HPP
 #define TOML_SERIALIZER_HPP
-#include "value.hpp"
+#include <toml/value.hpp>
+#include <toml/lexer.hpp>
 #include <sstream>
 #include <locale>
 #include <iomanip>
