@@ -31,6 +31,7 @@ int GLOBAL_COUNT = 0;
 int GLOBAL_PROGRESS = 0;
 string outname = ""; 
 bool compileheaders = false;
+bool SHAREDOBJECT = false;
 
 toml::table loadConfig() {
     if ( exists(".mort") ) {
@@ -145,6 +146,9 @@ tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args
         vector<string> nargs;
         if (getExt(cppfile) == "cpp" or getExt(cppfile) == "c") {
             nargs = {"-c", "-Ibuild"}; 
+            if (SHAREDOBJECT) {
+                nargs.push_back("-fPIC");
+            }
         } else {
             //nargs = {"-x", "-Ibuild"}; 
             nargs = {"-Ibuild"}; 
@@ -273,9 +277,16 @@ int oComp(string com = "g++", vector<string> args = {}) {
         }*/
     }
 
-    string jofiles = join(wrap(toBuild(efiles)));
+    // define command to run to combile object files
 
-    string comm = join({com, jofiles, jargs});
+    string jofiles = join(wrap(toBuild(efiles)));
+    string comm;
+
+    if (SHAREDOBJECT) {
+        comm = join({com, jofiles, jargs, "-shared"});
+    } else { 
+        comm = join({com, jofiles, jargs});
+    }
 
     cout << CYN << "[" << ORN << "MORTAR" << CYN << "]: " << "Combining object files" << RES << endl;
 
