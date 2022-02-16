@@ -92,11 +92,13 @@ namespace changed {
         } else {
             if (includesChanged(filename).size() > 0) {
                 return true;
+            } else if (!exists(string("./build/") + removeDotSlash(filename + ".o")) && !exists((string("./build/")) + removeDotSlash(filename + ".gch"))) {
+                return true;
             } else if (getExt(filename) == "cpp" or getExt(filename) == "c") {
-                return ((modTime(filename) > modTime(string("./build/") + removeDotSlash(filename + ".o"))));
+                return (modTime(filename) > modTime(string("./build/") + removeDotSlash(filename + ".o")));
             } else if (getExt(filename) == "h" or getExt(filename) == "hpp") {
                 if (compileheaders) {
-                    return (!exists((string("./build/")) + removeDotSlash(filename + ".gch")));
+                    return (!exists(((string("./build/")) + removeDotSlash(filename + ".gch"))));
                 } else {
                     return true;
                 }
