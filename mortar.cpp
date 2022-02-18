@@ -88,6 +88,9 @@ void downloadDependency(map<string, toml::value> repo) {
             }
             r = system(("mkdir -p $(dirname \"./include/" + get<string>(repo["ipath"]) + "\")").c_str());
             r = system(("cp -r " + folder + "/" + get<string>(repo["cpath"]) + " include/" + get<string>(repo["ipath"])).c_str());
+            if (repo.count("command")) {
+                r = system((("cd include/" + get<string>(repo["ipath"])) + "; " + get<string>(repo["command"])).c_str());
+            }
         }
     }
 }
