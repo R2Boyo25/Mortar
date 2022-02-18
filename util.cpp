@@ -175,6 +175,10 @@ namespace util {
     }
 
     std::string getExt(std::string filename) {
+        if (filename == "") {
+            return "";
+        }
+
         string sfile = split(filename, '/').back();
         if (sfile.find(".") == string::npos) {
             return "";
