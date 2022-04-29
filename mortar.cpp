@@ -1,5 +1,5 @@
 #include <iostream>
-#include <filesystem>
+#include <boost/filesystem.hpp>
 #include <vector>
 #include <string>
 #include <sstream>
@@ -18,7 +18,7 @@
 #include "changed.hpp"
 
 using namespace std;
-using namespace std::filesystem;
+using namespace boost::filesystem;
 using namespace util;
 using namespace color;
 using namespace changed;
@@ -358,7 +358,7 @@ void compTarget(string target) {
         }
 
         if (ctarg.count("threads")) {
-            NTHREADS = get<int>(ctarg.at("threads"));
+            NTHREADS = toml::get<int>(ctarg.at("threads"));
         }
 
         if (ctarg.count("compileHeaders")) {

@@ -1,7 +1,7 @@
 #include "changed.hpp"
 
 using namespace std;
-using namespace std::filesystem;
+using namespace boost::filesystem;
 using namespace util;
 
 extern bool compileheaders;
@@ -104,8 +104,8 @@ namespace changed {
         return changed;
     }
 
-    file_time_type modTime(string fname) {
-        return std::filesystem::last_write_time(fname);
+    time_t modTime(string fname) {
+        return last_write_time(fname);
     }
 
     bool fileChanged(string filename) {
