@@ -1,6 +1,6 @@
 #include "util.hpp"
 using namespace std;
-using namespace boost::filesystem;
+using namespace std::filesystem;
 
 namespace util {
     vector<string> removeDotSlash(vector<string> dotted) {
@@ -74,7 +74,7 @@ namespace util {
         vector<string> files = {};
 
         for(auto const& dir_entry: recursive_directory_iterator{dir}) {
-            files.push_back(dir_entry.path().string());
+            files.push_back(dir_entry.path());
         }
 
         return files;

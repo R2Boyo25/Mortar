@@ -1,7 +1,7 @@
 #pragma once
 
 #include<string>
-#include<boost/filesystem.hpp> 
+#include<filesystem> 
 #include<vector>
 #include<tuple>
 #include<set>
@@ -19,5 +19,5 @@ namespace changed {
     bool fileChanged(std::string filename, std::string filevec);
     bool rFileChanged(std::string filename);
     std::vector<std::string> getIncludes(std::string filename); 
-    std::time_t modTime(std::string fname);
+    std::filesystem::file_time_type modTime(std::string fname);
 }
