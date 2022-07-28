@@ -23,8 +23,7 @@ namespace util {
         pFile = NULL;
     }
 
-    string readFile(string fname) {
-        // https://stackoverflow.com/a/2602258/14639101
+    string readFile(string fname) { // https://stackoverflow.com/a/2602258/14639101
         std::ifstream t(fname);
         std::stringstream buffer;
         buffer << t.rdbuf();
@@ -38,7 +37,6 @@ namespace util {
         vector<string> seglist;
 
         while(getline(tosplit, segment, delimiter)) {
-            //cout << segment << endl;
             seglist.push_back(segment);
         }
 

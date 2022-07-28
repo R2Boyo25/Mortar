@@ -125,17 +125,6 @@ void downloadDependencies(vector<map<string, toml::value>> deps) {
 int rawComp(string file, string com = "g++", vector<string> args = {}) {
     string comm = join({com, file, join(args)});
 
-    //{ { { { someprog; echo $? >&3; } | filter >&4; } 3>&1; } | { read xs; exit $xs; } } 4>&1
-    
-    /*
-    if (!system("which gppfilt > /dev/null 2>&1")) {
-        //comm = join({"{ { { {", com, file, join(args), "; echo $? >&3; } | gppfilt >&4; } 3>&1; } | { read xs; exit $xs; } } 4>&1"});
-        comm = join({"mispipe \"", com, file, join(args), "\"", "\"gppfilt\""});
-    } else {
-        comm = join({com, file, join(args)});
-    }
-    */
-
     const char * ccomm = comm.c_str();
 
     return system(ccomm);
@@ -153,7 +142,6 @@ tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args
                 nargs.push_back("-fPIC");
             }
         } else {
-            //nargs = {"-x", "-Ibuild"}; 
             nargs = {"-Ibuild"}; 
         }
         for (const string& arg : args) {
@@ -169,19 +157,10 @@ tuple<string, int> compO(string cppfile, string com = "g++", vector<string> args
                 } else {
                     nargs.push_back( "-o" + string("./build/") + removeDotSlash(cppfile + ".gch"));
                 }
-                //nargs.push_back(("-o" + string("./build/")) + removeDotSlash(cppfile + ".o")); 
             }
         }
 
         int code = rawComp(cppfile, com, nargs);
-        
-        if (!code) {
-            /*saveHash(cppfile);
-            for (string& f : get<1>(res)) {
-                makedirs(f);
-                saveHash(f);
-            }*/
-        }
 
         return { "./build/" + replaceExt(cppfile, ".o"), code };
     } else {
@@ -258,8 +237,6 @@ int oComp(string com = "g++", vector<string> args = {}) {
     cout << CYN << "[" << ORN << "MORTAR" << CYN << "]: Found " << NTHREADS << " threads, using " << USED << RES << endl;
 
     for (const vector<string>& chunk : sfiles) {
-        //for (int i = 0; i < sfiles.size(); i++) {
-        //vector<string> chunk = sfiles[i];
         thread thrd(threadComp, chunk, com, args, threads.size()+1);
         threads.push_back(move(thrd));
     }
@@ -275,9 +252,7 @@ int oComp(string com = "g++", vector<string> args = {}) {
     for (string& file : wfiles) {
         if (getExt(file) == "c" or getExt(file) == "cpp") {
             efiles.push_back(file + ".o");
-        } /*else {
-            efiles.push_back(file + ".gch");
-        }*/
+        }
     }
 
     // define command to run to combile object files
@@ -363,6 +338,21 @@ void compTarget(string target) {
 
         if (ctarg.count("compileHeaders")) {
             compileheaders = get<bool>(ctarg.at("compileHeaders")); 
+        }
+
+        if (ctarg.count("before")) {
+            int r = system(get<string>(ctarg["before"]).c_str());
+            if (r != 0) {
+                if (ctarg.count("beforeoptional")) {
+                    if (!get<bool>(ctarg["beforeoptional"])) {
+                        cout << RED << "[" << ORN << "MORTAR" << RED << "]: Before command failed - set beforeoptional to true to make optional" << RES << endl;
+                        exit(1);
+                    }
+                } else {
+                    cout << RED << "[" << ORN << "MORTAR" << RED << "]: Before command failed - set beforeoptional to true to make optional" << RES << endl;
+                    exit(1);
+                }
+            }
         }
 
         if (ctarg.count("after")) {
