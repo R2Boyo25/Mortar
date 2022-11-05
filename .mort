@@ -11,9 +11,30 @@ com = "g++"
 
 [_default]
 inherits = "default"
+oarg = [
+    "-DDOCTEST_CONFIG_DISABLE"
+]
  
-[debug]
+[_debug]
 inherits = "default"
 oarg = [
-    "-g"
+    "-g",
+    "-DDOCTEST_CONFIG_INCLUDE_TYPE_TRAITS",
+    "-DDOCTEST_CONFIG_NO_UNPREFIXED_OPTIONS"
 ]
+
+[test]
+type = "command"
+target = "_debug"
+command = "./mortar -dt-e"
+
+[debug]
+type = "command"
+target = "_debug"
+command = "gdb ./mortar"
+
+[[deps]]
+url = "https://github.com/doctest/doctest"
+cpath = "doctest"
+ipath = "doctest"
+exclude = ["extensions", "BUILD.bazel"]

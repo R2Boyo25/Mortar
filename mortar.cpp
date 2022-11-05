@@ -1,3 +1,5 @@
+#include "doctest.h"
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -33,6 +35,7 @@ string outname = "";
 bool compileheaders = false;
 bool SHAREDOBJECT = false;
 toml::table CONFIG;
+string runcommand = "";
 
 toml::table loadConfig() {
   if (exists(".mort")) {
@@ -60,44 +63,43 @@ void downloadDependency(map<string, toml::value> repo) {
     CANPRINT.unlock();
     r = system("rm -rf tmp");
     exit(1);
-  } else {
-    // I have no idea what I just wrote here,
-    // it is a mess because I didn't feel like messing with folder copying in
-    // C++ r is to get the compiler to stop complaining
-    if (!exists("include/" + get<string>(repo["ipath"]))) {
-      string user = split(
-          get<string>(repo["url"]),
-          BACKSLASH)[split(get<string>(repo["url"]), BACKSLASH).size() - 2];
-      string gitrepo = split(
-          get<string>(repo["url"]),
-          BACKSLASH)[split(get<string>(repo["url"]), BACKSLASH).size() - 1];
-      string folder = "tmp/" + user + "/" + gitrepo + "/";
+  }
+  // I have no idea what I just wrote here,
+  // it is a mess because I didn't feel like messing with folder copying in
+  // C++ r is to get the compiler to stop complaining
+  if (!exists("include/" + get<string>(repo["ipath"]))) {
+    string user =
+        split(get<string>(repo["url"]),
+              BACKSLASH)[split(get<string>(repo["url"]), BACKSLASH).size() - 2];
+    string gitrepo =
+        split(get<string>(repo["url"]),
+              BACKSLASH)[split(get<string>(repo["url"]), BACKSLASH).size() - 1];
+    string folder = "tmp/" + user + "/" + gitrepo + "/";
 
-      CANPRINT.lock();
-      cout << "Downloading dependency \"" << user << "/" << gitrepo << "\"..."
-           << endl;
-      CANPRINT.unlock();
+    CANPRINT.lock();
+    cout << "Downloading dependency \"" << user << "/" << gitrepo << "\"..."
+         << endl;
+    CANPRINT.unlock();
 
-      r = system(("mkdir tmp/" + user).c_str());
-      r = system(
-          ("git clone -q --depth=1 " + get<string>(repo["url"]) + " " + folder)
-              .c_str());
-      if (repo.count("exclude")) {
-        for (const string &file : get<vector<string>>(repo["exclude"])) {
-          r = system(("rm -rf " + folder + file).c_str());
-        }
+    r = system(("mkdir tmp/" + user).c_str());
+    r = system(
+        ("git clone -q --depth=1 " + get<string>(repo["url"]) + " " + folder)
+            .c_str());
+    if (repo.count("exclude")) {
+      for (const string &file : get<vector<string>>(repo["exclude"])) {
+        r = system(("rm -rf " + folder + file).c_str());
       }
-      r = system(("mkdir -p $(dirname \"./include/" +
-                  get<string>(repo["ipath"]) + "\")")
+    }
+    r = system(
+        ("mkdir -p $(dirname \"./include/" + get<string>(repo["ipath"]) + "\")")
+            .c_str());
+    r = system(("cp -r " + folder + "/" + get<string>(repo["cpath"]) +
+                " include/" + get<string>(repo["ipath"]))
+                   .c_str());
+    if (repo.count("command")) {
+      r = system((("cd include/" + get<string>(repo["ipath"])) + "; " +
+                  get<string>(repo["command"]))
                      .c_str());
-      r = system(("cp -r " + folder + "/" + get<string>(repo["cpath"]) +
-                  " include/" + get<string>(repo["ipath"]))
-                     .c_str());
-      if (repo.count("command")) {
-        r = system((("cd include/" + get<string>(repo["ipath"])) + "; " +
-                    get<string>(repo["command"]))
-                       .c_str());
-      }
     }
   }
 }
@@ -250,6 +252,11 @@ int oComp(string com = "g++", vector<string> args = {}) {
   }
 
   if (USED == 0) {
+    if (runcommand != "") {
+      int rcode = system(runcommand.c_str());
+      exit(rcode);
+    }
+
     cout << RED << "[" << ORN << "MORTAR" << RED << "]: No files to compile"
          << RES << endl;
     exit(0);
@@ -377,6 +384,30 @@ void compTarget(string target) {
     std::map<toml::key, toml::value> ctarg =
         toml::get<std::map<toml::key, toml::value>>(config.at(target));
 
+    if (configValueExists(ctarg, "type")) {
+      if (getConfigValue<string>(ctarg, "type") == "command") {
+        if (!configValueExists(ctarg, "target")) {
+          std::cout
+              << "Target type is set to command but is missing `target` key"
+              << std::endl;
+          std::exit(1);
+        }
+
+        if (!configValueExists(ctarg, "target")) {
+          std::cout
+              << "Target type is set to command but is missing `command` key"
+              << std::endl;
+          std::exit(1);
+        }
+
+        runcommand = getConfigValue<string>(ctarg, "command");
+
+        target = getConfigValue<string>(ctarg, "target");
+
+        ctarg = toml::get<std::map<toml::key, toml::value>>(config.at(target));
+      }
+    }
+
     if (ctarg.count("com")) {
       com = get<string>(ctarg.at("com"));
     }
@@ -475,10 +506,28 @@ void compTarget(string target) {
     } else {
       oComp(com, {out, oarg, link});
     }
+
+    if (runcommand != "") {
+      int rcode = system(runcommand.c_str());
+    }
   }
 }
 
 int main(int argc, char *argv[]) {
+#ifndef DOCTEST_CONFIG_DISABLE
+  doctest::Context context;
+
+  context.setOption("abort-after", 5);
+
+  context.applyCommandLine(argc, argv);
+
+  int res = context.run();
+  if (context.shouldExit() || res)
+    return res;
+#else
+  int res = 0;
+#endif
+
   if (!NTHREADS) {
     NTHREADS = 1;
   }
