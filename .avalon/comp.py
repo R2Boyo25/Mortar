@@ -1,13 +1,13 @@
 import os
 import sys
 
-if not os.path.exists("include/doctest"):
+if not os.path.exists("include/clipp"):
     os.system("mkdir tmp")
     os.system("git clone https://github.com/muellan/clipp tmp/clipp")
     os.system("mv tmp/doctest/include include/clipp")
     os.system("rm -rf tmp")
 
-if not os.path.exists("include/clipp"):
+if not os.path.exists("include/doctest"):
     os.system("mkdir tmp")
     os.system("git clone https://github.com/doctest/doctest tmp/doctest")
     os.system(
