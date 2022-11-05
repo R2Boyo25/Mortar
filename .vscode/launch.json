@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "(gdb) Launch",
-            "type": "cppdbg",
+            "type": "debug",
             "request": "launch",
             "program": "${workspaceFolder}/mortar",
             "args": [],

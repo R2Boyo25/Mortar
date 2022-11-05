@@ -1,4 +1,4 @@
-[_default]
+[default]
 out = "mortar"
 oarg = [
     "-Ofast",
@@ -8,15 +8,12 @@ l = [
     "pthread"
 ]
 com = "g++"
+
+[_default]
+inherits = "default"
  
-[d]
-out = "mortar"
+[debug]
+inherits = "default"
 oarg = [
-    "-Ofast",
-    "-std=c++17",
     "-g"
 ]
-l = [
-    "pthread"
-]
-com = "g++"
