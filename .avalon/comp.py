@@ -4,7 +4,7 @@ import sys
 if not os.path.exists("include/clipp"):
     os.system("mkdir tmp")
     os.system("git clone https://github.com/muellan/clipp tmp/clipp")
-    os.system("mv tmp/doctest/include include/clipp")
+    os.system("mv tmp/clipp/include include/clipp")
     os.system("rm -rf tmp")
 
 if not os.path.exists("include/doctest"):
