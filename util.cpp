@@ -15,7 +15,7 @@ vector<string> removeDotSlash(vector<string> dotted) {
   return ndotted;
 }
 
-TEST_CASE("[Vector] removeDotSlash") {
+TEST_CASE("[vector] removeDotSlash") {
   std::vector<std::string> output;
   std::vector<std::string> testve;
 
@@ -88,13 +88,9 @@ string join(vector<string> v,
 }
 
 TEST_CASE("join") {
-  std::vector<std::string> input = {};
+  CHECK(join({"yes", "no", "true", "false"}, " ") == "yes no true false");
 
-  input = {"yes", "no", "true", "false"};
-  CHECK(join(input, " ") == "yes no true false");
-
-  input = {"path", "to", "file"};
-  CHECK(join(input, "/") == "path/to/file");
+  CHECK(join({"path", "to", "file"}, "/") == "path/to/file");
 }
 
 vector<string> wrap(vector<string> towrap) {
@@ -106,6 +102,13 @@ vector<string> wrap(vector<string> towrap) {
   }
 
   return wrappedv;
+}
+
+TEST_CASE("wrap") {
+  std::vector<std::string> output;
+
+  output = {"\"hallo\"", "\"auf wiedersehen\""};
+  CHECK(wrap({"hallo", "auf wiedersehen"}) == output);
 }
 
 vector<string> getFiles(string dir) {
@@ -143,6 +146,13 @@ vector<string> orderExts(vector<string> files) {
   return out;
 }
 
+TEST_CASE("orderExts") {
+  std::vector<std::string> output;
+
+  output = {"a.h", "d.hpp", "b.c", "c.cpp"};
+  CHECK(orderExts({"a.h", "b.c", "c.cpp", "d.hpp"}) == output);
+}
+
 vector<string> filterFiles(vector<string> files, vector<string> exts) {
   vector<string> ffiles = {};
 
@@ -170,10 +180,23 @@ vector<string> filterFiles(vector<string> files, vector<string> exts) {
   return ffiles;
 }
 
+TEST_CASE("filterFiles") {
+  std::vector<std::string> output;
+
+  output = {"a.c", "c.cpp"};
+  CHECK(filterFiles({"a.c", "b.txt", "c.cpp", "d.toml"}, {"c", "cpp"}) ==
+        output);
+}
+
 string replaceExt(string filename, string newext) {
   vector<string> splt = split(filename, '.');
   splt[splt.size() - 1] = newext;
   return join(splt, ".");
+}
+
+TEST_CASE("[string] replaceExt") {
+  CHECK(replaceExt("abc.cpp", "o") == "abc.o");
+  CHECK(replaceExt("abc.h", "gch") == "abc.gch");
 }
 
 vector<string> replaceExts(vector<string> files, string newext) {
@@ -184,7 +207,19 @@ vector<string> replaceExts(vector<string> files, string newext) {
   return newfiles;
 }
 
+TEST_CASE("[vector] replaceExts") {
+  std::vector<std::string> output;
+
+  output = {"abc.o", "def.o"};
+  CHECK(replaceExts({"abc.cpp", "def.c"}, "o") == output);
+}
+
 bool startsWith(string str, string strwth) { return str.rfind(strwth, 0) == 0; }
+
+TEST_CASE("startsWith") {
+  CHECK(startsWith("abcd", "ab"));
+  CHECK_FALSE(startsWith("a_bcd", "ab"));
+}
 
 std::vector<std::vector<string>> splitvs(std::vector<string> vec, int n) {
   std::vector<std::vector<string>> vec_of_vecs(
@@ -213,6 +248,13 @@ std::vector<std::vector<string>> splitvs(std::vector<string> vec, int n) {
   return vec_of_vecs;
 }
 
+TEST_CASE("splitvs") {
+  std::vector<std::vector<std::string>> output;
+
+  output = {{"a", "b", "c"}, {"d", "e"}};
+  CHECK(splitvs({"a", "b", "c", "d", "e"}, 2) == output);
+}
+
 std::string getExt(std::string filename) {
   if (filename == "") {
     return "";
@@ -226,6 +268,12 @@ std::string getExt(std::string filename) {
   string fext = split(sfile, '.').back();
 
   return fext;
+}
+
+TEST_CASE("getExt") {
+  CHECK(getExt("abc.txt") == "txt");
+  CHECK(getExt("defg.cpp") == "cpp");
+  CHECK(getExt("hi.toml") == "toml");
 }
 
 void makedirs(std::string filename) {
@@ -242,12 +290,40 @@ std::vector<std::string> toBuild(std::vector<std::string> files) {
   return ofiles;
 }
 
+TEST_CASE("[vector] toBuild") {
+  std::vector<std::string> inputv;
+  std::vector<std::string> output;
+
+  inputv = {"a.cpp", "dir/b.cpp"};
+  output = {"./build/a.cpp", "./build/dir/b.cpp"};
+  CHECK(toBuild(inputv) == output);
+
+  inputv = {"./a.cpp", "./dir/b.cpp"};
+  output = {"./build/a.cpp", "./build/dir/b.cpp"};
+  CHECK(toBuild(inputv) == output);
+}
+
 std::string toBuild(std::string file) {
   return "./build/" + removeDotSlash(file);
 }
 
+TEST_CASE("[string] toBuild") {
+  CHECK(toBuild("a.cpp") == "./build/a.cpp");
+  CHECK(toBuild("./a.cpp") == "./build/a.cpp");
+  CHECK(toBuild("dir/b.cpp") == "./build/dir/b.cpp");
+  CHECK(toBuild("./dir/b.cpp") == "./build/dir/b.cpp");
+}
+
 std::string removeDotSlash(std::string filename) {
-  return filename.substr(2, filename.size() - 1);
+  if (filename[0] == '.' && filename[1] == '/') {
+    return filename.substr(2, filename.size() - 1);
+  }
+  return filename;
+}
+
+TEST_CASE("[string] removeDotSlash") {
+  CHECK(removeDotSlash("./a.cpp") == "a.cpp");
+  CHECK(removeDotSlash("a.cpp") == "a.cpp");
 }
 
 std::string lstrip(std::string text, std::string toremove) {
@@ -258,12 +334,24 @@ std::string lstrip(std::string text, std::string toremove) {
   return text;
 }
 
+TEST_CASE("lstrip") {
+  CHECK(lstrip("aaab", "a") == "b");
+  CHECK(lstrip("b", "a") == "b");
+  CHECK(lstrip("aaaaa", "a") == "");
+}
+
 std::string rstrip(std::string text, std::string toremove) {
   while (string(1, text[text.size() - 1]) == toremove) {
     text = text.erase(text.size() - 1, 1);
   }
 
   return text;
+}
+
+TEST_CASE("rstrip") {
+  CHECK(rstrip("baaa", "a") == "b");
+  CHECK(rstrip("b", "a") == "b");
+  CHECK(rstrip("aaaaa", "a") == "");
 }
 
 std::string strip(std::string text, std::string toremove) {
@@ -273,12 +361,36 @@ std::string strip(std::string text, std::string toremove) {
   return text;
 }
 
+TEST_CASE("strip") {
+  CHECK(strip("baaa", "a") == "b");
+  CHECK(strip("b", "a") == "b");
+  CHECK(strip("aaaaa", "a") == "");
+  CHECK(strip("aaaabaaa", "a") == "b");
+}
+
 std::string stripComment(std::string text) {
   if (text.find("//") != string::npos) {
-    text = text.erase(text.find("//") - 1);
+    auto pos = text.find("//");
+    int offset = 0;
+
+    if (pos > 0) {
+      if (text[pos - 1] == ' ') {
+        offset = 1;
+      }
+    }
+
+    text = text.erase(pos - offset);
   }
 
   return text;
+}
+
+TEST_CASE("stripComment") {
+  CHECK(stripComment("// yes") == "");
+  CHECK(stripComment("a // yes") == "a");
+  CHECK(stripComment("b// yes") == "b");
+  CHECK(stripComment("ccc") == "ccc");
+  CHECK(stripComment("") == "");
 }
 
 std::string dirName(std::string filename) {
@@ -290,4 +402,11 @@ std::string dirName(std::string filename) {
     return "./";
   }
 }
+
+TEST_CASE("dirName") {
+  CHECK(dirName("aa/bb.cc") == "aa");
+  CHECK(dirName("aa/bb/cc.dd") == "aa/bb");
+  CHECK(dirName("bb.cc") == "./");
+}
+
 } // namespace util
