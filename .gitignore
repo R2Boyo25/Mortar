@@ -2,3 +2,4 @@
 mortar
 build
 include/doctest
+include/clipp

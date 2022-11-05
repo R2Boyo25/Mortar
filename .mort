@@ -28,13 +28,28 @@ type = "command"
 target = "_debug"
 command = "./mortar -dt-e"
 
+[test_success]
+type = "command"
+target = "_debug"
+command = "./mortar -dt-e -dt-s"
+
+[debug_gdb]
+type = "command"
+target = "_debug"
+command = "gdb ./mortar -ex run"
+
 [debug]
 type = "command"
 target = "_debug"
-command = "gdb ./mortar"
+command = "./mortar"
 
 [[deps]]
 url = "https://github.com/doctest/doctest"
 cpath = "doctest"
 ipath = "doctest"
 exclude = ["extensions", "BUILD.bazel"]
+
+[[deps]]
+url = "https://github.com/muellan/clipp"
+cpath = "include"
+ipath = "clipp"

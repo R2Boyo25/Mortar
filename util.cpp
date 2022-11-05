@@ -63,6 +63,16 @@ vector<string> split(string splitting,
   return seglist;
 }
 
+TEST_CASE("split") {
+  std::vector<std::string> output = {};
+
+  output = {"yes", "no", "true", "false"};
+  CHECK(split("yes no true false", ' ') == output);
+
+  output = {"path", "to", "file"};
+  CHECK(split("path/to/file", '/') == output);
+}
+
 string join(vector<string> v,
             string delimiter) { // https://stackoverflow.com/a/20986194
   stringstream ss;
@@ -75,6 +85,16 @@ string join(vector<string> v,
   string s = ss.str();
 
   return s;
+}
+
+TEST_CASE("join") {
+  std::vector<std::string> input = {};
+
+  input = {"yes", "no", "true", "false"};
+  CHECK(join(input, " ") == "yes no true false");
+
+  input = {"path", "to", "file"};
+  CHECK(join(input, "/") == "path/to/file");
 }
 
 vector<string> wrap(vector<string> towrap) {

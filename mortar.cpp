@@ -1,5 +1,6 @@
 #include "doctest.h"
 
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -16,7 +17,10 @@
 #include <toml/toml.hpp>
 #include <tuple>
 
+#include <clipp/clipp.h>
+
 #include "changed.hpp"
+#include "configutils.hpp"
 #include "util.hpp"
 
 using namespace std;
@@ -24,6 +28,7 @@ using namespace std::filesystem;
 using namespace util;
 using namespace color;
 using namespace changed;
+using namespace clipp;
 
 bool ERRORFOUND = false;
 mutex CANPRINT;
@@ -36,21 +41,7 @@ bool compileheaders = false;
 bool SHAREDOBJECT = false;
 toml::table CONFIG;
 string runcommand = "";
-
-toml::table loadConfig() {
-  if (exists(".mort")) {
-    try {
-      toml::table tmltab = toml::parse(".mort");
-      return tmltab;
-    } catch (...) {
-      std::cout << "Failed to parse config file, not valid TOML" << std::endl;
-      std::exit(1);
-    }
-  }
-
-  toml::table cfg = toml::table();
-  return cfg;
-}
+string TARGETNAME = "";
 
 void downloadDependency(map<string, toml::value> repo) {
   char BACKSLASH = '/';
@@ -262,8 +253,8 @@ int oComp(string com = "g++", vector<string> args = {}) {
     exit(0);
   }
 
-  cout << CYN << "[" << ORN << "MORTAR" << CYN << "]: Found " << NTHREADS
-       << " threads, using " << USED << RES << endl;
+  cout << CYN << "[" << ORN << "MORTAR" << CYN << "]: " << NTHREADS
+       << " threads available, using " << USED << RES << endl;
 
   for (const vector<string> &chunk : sfiles) {
     thread thrd(threadComp, chunk, com, args, threads.size() + 1);
@@ -284,7 +275,7 @@ int oComp(string com = "g++", vector<string> args = {}) {
     }
   }
 
-  // define command to run to combile object files
+  // define command to run to compile object files
 
   string jofiles = join(wrap(toBuild(efiles)));
   string comm;
@@ -308,44 +299,6 @@ int oComp(string com = "g++", vector<string> args = {}) {
        << " seconds\n"
        << RES;
   return res;
-}
-
-bool configValueExists(std::map<toml::key, toml::value> table,
-                       std::string key) {
-  return table.count(key);
-}
-
-template <class T>
-T getConfigValue(std::map<toml::key, toml::value> table, std::string key) {
-  return get<T>(table.at(key));
-}
-
-std::map<toml::key, toml::value> tableToMap(toml::value table) {
-  return toml::get<std::map<toml::key, toml::value>>(table);
-}
-
-bool configInherits(std::map<toml::key, toml::value> table) {
-  if (configValueExists(table, "inherits")) {
-    if (!configValueExists(tableToMap(CONFIG),
-                           getConfigValue<std::string>(table, "inherits"))) {
-      std::cout << "Inherited table is not defined" << std::endl;
-      std::exit(1);
-    }
-
-    return true;
-  }
-
-  return false;
-}
-
-toml::value getConfigInheritance(std::map<toml::key, toml::value> table) {
-  return getConfigValue<toml::value>(
-      tableToMap(CONFIG), getConfigValue<std::string>(table, "inherits"));
-}
-
-template <class T>
-T getInheritedValue(std::map<toml::key, toml::value> table, std::string key) {
-  return getConfigValue<T>(tableToMap(getConfigInheritance(table)), key);
 }
 
 void compTarget(string target) {
@@ -513,6 +466,74 @@ void compTarget(string target) {
   }
 }
 
+int mortar_main() {
+  if (!NTHREADS) {
+    NTHREADS = 1;
+  }
+
+  if (TARGETNAME == "") {
+    compTarget("_default");
+    return 0;
+  }
+
+  compTarget(TARGETNAME);
+
+  return 0;
+}
+
+int mortar_clean() {
+  for (const string &file :
+       filterFiles(getFiles("./build"), {"mhsh", "ahsh", "o", "gch"})) {
+    remove(file);
+  }
+  return 0;
+}
+
+auto manpage(group cli) {
+  auto fmt = doc_formatting().split_alternatives(true);
+  return make_man_page(cli, "mortar", fmt)
+      .prepend_section("DESCRIPTION", "\tCopyright (C) Kazani 2022\n\tMortar - "
+                                      "Easy to use C++ build system.")
+      .append_section("LICENSE", "\tLGPLv3");
+  ;
+}
+
+int makeCLI(int argc, char **argv) {
+  enum class mode { help, clean, none };
+
+  mode selected = mode::none;
+
+  auto _defaultMode = (opt_value("target", TARGETNAME));
+
+  auto cleanmode = (command("clean").set(selected, mode::clean));
+
+  auto helpmode = (command("help").set(selected, mode::help) |
+                   option("-h", "--help").set(selected, mode::help));
+
+  auto opts = ((option("-j", "--threads") & number("thread count", NTHREADS)));
+
+  auto cli = (_defaultMode | cleanmode | helpmode, opts);
+
+  if (parse(argc, argv, cli)) {
+    switch (selected) {
+    case mode::clean:
+      return mortar_clean();
+      break;
+    case mode::help:
+      std::cout << manpage(cli);
+      return 1;
+      break;
+    case mode::none:
+      return mortar_main();
+      break;
+    }
+  }
+
+  std::cout << manpage(cli);
+
+  return 1;
+}
+
 int main(int argc, char *argv[]) {
 #ifndef DOCTEST_CONFIG_DISABLE
   doctest::Context context;
@@ -528,30 +549,5 @@ int main(int argc, char *argv[]) {
   int res = 0;
 #endif
 
-  if (!NTHREADS) {
-    NTHREADS = 1;
-  }
-
-  std::vector<std::string> args(argv, argv + argc);
-  if (argc == 1) {
-    compTarget("_default");
-  } else {
-    if (args[1] == "-j") {
-      NTHREADS = stoi(args[2]);
-      compTarget("_default");
-    } else if (args[1] == "clean") {
-      for (const string &file :
-           filterFiles(getFiles("./build"), {"mhsh", "ahsh", "o", "gch"})) {
-        remove(file);
-      }
-      return 0;
-    } else {
-      if (argc == 4) {
-        if (args[2] == "-j") {
-          NTHREADS = stoi(args[3]);
-        }
-      }
-      compTarget(argv[1]);
-    }
-  }
+  return res || makeCLI(argc, argv);
 }
