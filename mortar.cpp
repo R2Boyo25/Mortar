@@ -42,6 +42,8 @@ bool SHAREDOBJECT = false;
 toml::table CONFIG;
 string runcommand = "";
 string TARGETNAME = "";
+std::vector<std::string> EXCLUDE = {};
+std::vector<std::string> INCLUDE = {};
 
 void downloadDependency(map<string, toml::value> repo) {
   char BACKSLASH = '/';
@@ -214,9 +216,11 @@ int oComp(string com = "g++", vector<string> args = {}) {
   string jargs = join(args);
   vector<string> wfiles;
   if (compileheaders) {
-    wfiles = orderExts(filterFiles(getFiles(), {"c", "cpp", "h", "hpp"}));
+    wfiles = orderExts(includeExclude(
+        INCLUDE, EXCLUDE, filterFiles(getFiles(), {"c", "cpp", "h", "hpp"})));
   } else {
-    wfiles = orderExts(filterFiles(getFiles(), {"c", "cpp"}));
+    wfiles = orderExts(includeExclude(INCLUDE, EXCLUDE,
+                                      filterFiles(getFiles(), {"c", "cpp"})));
   }
 
   vector<string> pfiles = {};
@@ -363,6 +367,34 @@ void compTarget(string target) {
 
     if (ctarg.count("com")) {
       com = get<string>(ctarg.at("com"));
+    }
+
+    if (ctarg.count("exclude")) {
+      EXCLUDE = get<vector<string>>(ctarg["exclude"]);
+    }
+
+    if (configInherits(ctarg)) {
+      if (configValueExists(tableToMap(getConfigInheritance(ctarg)),
+                            "exclude")) {
+        for (string const &li :
+             getInheritedValue<vector<string>>(ctarg, "exclude")) {
+          EXCLUDE.push_back(li);
+        }
+      }
+    }
+
+    if (ctarg.count("include")) {
+      INCLUDE = get<vector<string>>(ctarg["include"]);
+    }
+
+    if (configInherits(ctarg)) {
+      if (configValueExists(tableToMap(getConfigInheritance(ctarg)),
+                            "include")) {
+        for (string const &li :
+             getInheritedValue<vector<string>>(ctarg, "include")) {
+          INCLUDE.push_back(li);
+        }
+      }
     }
 
     if (ctarg.count("oarg")) {
@@ -534,6 +566,15 @@ int makeCLI(int argc, char **argv) {
   return 1;
 }
 
+bool envvar(char *name) {
+  auto v = getenv(name);
+  if (v != NULL) {
+    return stoi(v);
+  }
+
+  return false;
+}
+
 int main(int argc, char *argv[]) {
 #ifndef DOCTEST_CONFIG_DISABLE
   doctest::Context context;
@@ -543,7 +584,7 @@ int main(int argc, char *argv[]) {
   context.applyCommandLine(argc, argv);
 
   int res = context.run();
-  if (context.shouldExit() || res)
+  if (context.shouldExit() || res || envvar((char *)"DOCTEST_EXIT"))
     return res;
 #else
   int res = 0;

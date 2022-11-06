@@ -8,6 +8,7 @@ l = [
     "pthread"
 ]
 com = "g++"
+exclude = ["include/doctest/parts/doctest\\.cpp"]
 
 [_default]
 inherits = "default"
@@ -22,6 +23,7 @@ oarg = [
     "-DDOCTEST_CONFIG_INCLUDE_TYPE_TRAITS",
     "-DDOCTEST_CONFIG_NO_UNPREFIXED_OPTIONS"
 ]
+include = ["include/doctest/parts/doctest\\.cpp"]
 
 [test]
 type = "command"

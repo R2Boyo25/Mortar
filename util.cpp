@@ -1,4 +1,7 @@
 #include "util.hpp"
+#include <regex>
+#include <string>
+#include <vector>
 using namespace std;
 using namespace std::filesystem;
 
@@ -315,8 +318,10 @@ TEST_CASE("[string] toBuild") {
 }
 
 std::string removeDotSlash(std::string filename) {
-  if (filename[0] == '.' && filename[1] == '/') {
-    return filename.substr(2, filename.size() - 1);
+  if (filename.size() > 1) {
+    if (filename[0] == '.' && filename[1] == '/') {
+      return filename.substr(2, filename.size() - 1);
+    }
   }
   return filename;
 }
@@ -324,6 +329,7 @@ std::string removeDotSlash(std::string filename) {
 TEST_CASE("[string] removeDotSlash") {
   CHECK(removeDotSlash("./a.cpp") == "a.cpp");
   CHECK(removeDotSlash("a.cpp") == "a.cpp");
+  CHECK(removeDotSlash("a") == "a");
 }
 
 std::string lstrip(std::string text, std::string toremove) {
@@ -407,6 +413,99 @@ TEST_CASE("dirName") {
   CHECK(dirName("aa/bb.cc") == "aa");
   CHECK(dirName("aa/bb/cc.dd") == "aa/bb");
   CHECK(dirName("bb.cc") == "./");
+}
+
+std::vector<std::string> filterFilesRegex(std::string regex,
+                                          std::vector<std::string> files) {
+  std::vector<std::string> filtered = {};
+  std::regex re(regex);
+
+  for (auto &file : files) {
+    if (std::regex_match(removeDotSlash(file), re)) {
+      filtered.push_back(file);
+    }
+  }
+
+  return filtered;
+}
+
+TEST_CASE("filterFilesRegex") {
+  std::vector<std::string> input;
+  std::vector<std::string> output;
+
+  input = {"a", "test/b", "test/c", "./test/d.txt", "test/d.cpp", "./other/e"};
+  output = {"test/b", "test/c", "./test/d.txt", "test/d.cpp"};
+  CHECK(filterFilesRegex("test/.*", input) == output);
+  output = {"./test/d.txt"};
+  CHECK(filterFilesRegex("test/.*\\.txt", input) == output);
+}
+
+std::vector<std::string> filterOutFilesRegex(std::string regex,
+                                             std::vector<std::string> files) {
+  std::vector<std::string> filtered = {};
+  std::regex re(regex);
+
+  for (auto &file : files) {
+    if (!std::regex_match(removeDotSlash(file), re)) {
+      filtered.push_back(file);
+    }
+  }
+
+  return filtered;
+}
+
+TEST_CASE("filterOutFilesRegex") {
+  std::vector<std::string> input;
+  std::vector<std::string> output;
+
+  input = {"./a", "test/b", "./test/c", "test/d.txt", "test/d.cpp", "other/e"};
+  output = {"./a", "other/e"};
+  CHECK(filterOutFilesRegex("test/.*", input) == output);
+  output = {"./a", "test/b", "./test/c", "test/d.cpp", "other/e"};
+  CHECK(filterOutFilesRegex("test/.*\\.txt", input) == output);
+}
+
+std::vector<std::string> includeExclude(std::vector<std::string> include,
+                                        std::vector<std::string> exclude,
+                                        std::vector<std::string> files) {
+  std::vector<std::string> excluded = files;
+  std::vector<std::string> excluded2 = excluded;
+
+  for (auto &filter : exclude) {
+    excluded2 = excluded;
+    excluded = {};
+    for (auto &file : filterOutFilesRegex(filter, excluded2)) {
+      excluded.push_back(file);
+    }
+  }
+
+  for (auto &filter : include) {
+    for (auto &file : filterFilesRegex(filter, files)) {
+      if (!any_of(excluded.begin(), excluded.end(),
+                  [&](const string &elem) { return elem == file; })) {
+        excluded.push_back(file);
+      }
+    }
+  }
+
+  return excluded;
+}
+
+TEST_CASE("includeExclude") {
+  std::vector<std::string> include;
+  std::vector<std::string> exclude;
+  std::vector<std::string> input;
+  std::vector<std::string> output;
+
+  include = {"test/.*\\.txt"};
+  exclude = {"test/.*"};
+
+  input = {"a", "test/b", "./test/c", "test/d.txt", "test/d.cpp", "./other/e"};
+  output = {"a", "./other/e", "test/d.txt"};
+  CHECK(includeExclude(include, exclude, input) == output);
+  include = {};
+  exclude = {};
+  CHECK(includeExclude(include, exclude, input) == input);
 }
 
 } // namespace util

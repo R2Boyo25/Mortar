@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -40,4 +41,11 @@ std::string rstrip(std::string text, std::string toremove = " ");
 std::string strip(std::string text, std::string toremove = " ");
 std::string stripComment(std::string text);
 std::string dirName(std::string filename);
+std::vector<std::string> filterFilesRegex(std::string regex,
+                                          std::vector<std::string> files);
+std::vector<std::string> filterOutFilesRegex(std::string regex,
+                                             std::vector<std::string> files);
+std::vector<std::string> includeExclude(std::vector<std::string> include,
+                                        std::vector<std::string> exclude,
+                                        std::vector<std::string> files);
 } // namespace util
