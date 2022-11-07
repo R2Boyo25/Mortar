@@ -1,0 +1,12 @@
+name: run-tests
+on:
+  push:
+    branches:
+      - master
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: kurocha/setup-cpp@v1
+      - run: sudo apt install libboost-all-dev
+      - run: ./mortar --dt-success --dt-exit
