@@ -9,4 +9,5 @@ jobs:
     steps:
       - uses: kurocha/setup-cpp@v1
       - run: sudo apt install libboost-all-dev
+      - run: python3 .avalon/comp.py
       - run: ./mortar --dt-success --dt-exit
