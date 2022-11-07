@@ -17,4 +17,6 @@ jobs:
       - uses: kurocha/setup-cpp@v1
       - run: sudo apt install libboost-all-dev
       - run: python3 .avalon/comp.py --tests
-      - run: ./mortar --dt-exit >> $GITHUB_STEP_SUMMARY
+      - run: echo '```' >> $GITHUB_STEP_SUMMARY
+      - run: ./mortar --dt-exit --dt-no-intro  >> $GITHUB_STEP_SUMMARY
+      - run: echo '```' >> $GITHUB_STEP_SUMMARY
