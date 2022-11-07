@@ -12,10 +12,12 @@ jobs:
       - uses: kurocha/setup-cpp@v1
       - run: sudo apt install libboost-all-dev
   build:
+    needs: setup
     runs-on: ubuntu-latest
     steps:
       - run: python3 .avalon/comp.py
   run-tests:
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - run: ./mortar --dt-success --dt-exit
