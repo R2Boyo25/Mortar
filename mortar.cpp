@@ -311,7 +311,8 @@ void compTarget(string target) {
   try {
     config = loadConfig();
   } catch (std::runtime_error) {
-    cout << "No .mort file found, or it is improperly formatted" << endl;
+    cout << "No .mort / mortar.toml file found, or it is improperly formatted"
+         << endl;
     exit(1);
   }
 

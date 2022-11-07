@@ -109,7 +109,8 @@ file_time_type modTime(string fname) {
 bool fileChanged(string filename) {
   gincludes[filename] = {};
   if (exists(outname)) {
-    if (modTime(".mort") > modTime(outname)) {
+    if (modTime(".mort") > modTime(outname) ||
+        modTime("mortar.toml") > modTime(outname)) {
       return true;
     } else if (includesChanged(filename, filename).size() > 0) {
       return true;
@@ -150,7 +151,8 @@ bool fileChanged(string filename) {
 
 bool fileChanged(string filename, string filevec) {
   if (exists(outname)) {
-    if (modTime(".mort") > modTime(outname)) {
+    if (modTime(".mort") > modTime(outname) ||
+        modTime("mortar.toml") > modTime(outname)) {
       return true;
     } else if (includesChanged(filename, filevec).size() > 0) {
       return true;

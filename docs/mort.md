@@ -85,4 +85,4 @@ exclude = ["path1", "file1", "path/tofile"]
 `exclude` is a list of paths to exclude from being moved into `ipath`. (if you don't want certain files) (useful for excluding test cpp files, etc.)
 
 # Example
-[Mortar's .mort file](/.mort)
+[Mortar's mortar.toml file](/mortar.toml)

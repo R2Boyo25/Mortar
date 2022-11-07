@@ -11,6 +11,16 @@ toml::table loadConfig() {
     }
   }
 
+  if (std::filesystem::exists("mortar.toml")) {
+    try {
+      toml::table tmltab = toml::parse("mortar.toml");
+      return tmltab;
+    } catch (...) {
+      std::cout << "Failed to parse config file, not valid TOML" << std::endl;
+      std::exit(1);
+    }
+  }
+
   toml::table cfg = toml::table();
   return cfg;
 }
