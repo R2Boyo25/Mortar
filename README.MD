@@ -3,10 +3,10 @@ A C/C++ build system.
 
 Can download dependencies for you.
 
-[mortar.toml syntax](/docs/mort.md)
+[mortar.toml syntax](/docs/config.md)
 
 # Usage
 ```bash
 mortar targetname
 ```
-Detailed explanation of targets in [mortar.toml syntax](/docs/mort.md).
+Detailed explanation of targets in [mortar.toml syntax](/docs/config.md).

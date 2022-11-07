@@ -1,3 +1,6 @@
+# mortar.toml
+The TOML file containing the configuration should be named `mortar.toml`. (If you see any of my projects using `.mort`, that was what I used to call it, and it still works) (I switched to `mortar.toml` so syntax highlighting would work out-of-the-box without custom associations)
+
 # Targets
 Targets are TOML tables.
 Targets contain the information to compile a program.
