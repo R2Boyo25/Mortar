@@ -7,8 +7,7 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     steps:
-      - run: pwd
-      - run: ls
+      - uses: actions/checkout@v3
       - uses: kurocha/setup-cpp@v1
       - run: sudo apt install libboost-all-dev
   build:
@@ -20,4 +19,4 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - run: ./mortar --dt-success --dt-exit
+      - run: ./mortar --dt-exit >> $GITHUB_STEP_SUMMARY
