@@ -1,8 +1,8 @@
 # mortar.toml
-The TOML file containing the configuration should be named `mortar.toml`. (If you see any of my projects using `.mort`, that was what I used to call it, and it still works) (I switched to `mortar.toml` so syntax highlighting would work out-of-the-box without custom associations)
+The [TOML](https://toml.io/en/) file containing the configuration should be named `mortar.toml`. (If you see any of my projects using `.mort`, that was what I used to call it, and it still works) (I switched to `mortar.toml` so syntax highlighting would work out-of-the-box without custom associations)
 
 # Targets
-Targets are TOML tables.
+Targets are [TOML](https://toml.io/en/) tables.
 Targets contain the information to compile a program.
 Any target may be selected and run, except for `deps`. (which isn't a target)
 ```toml
@@ -66,7 +66,7 @@ The key `command` must be set to a command to run.
 - git is the only supported download method.
 
 ## Adding a dependency
-You can add a depency with the following TOML:
+You can add a depency with the following [TOML](https://toml.io/en/):
 ```toml
 [[deps]]
 url = "https://example.com/path/to/repository.git"
