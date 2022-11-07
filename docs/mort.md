@@ -1,0 +1,88 @@
+# Targets
+Targets are TOML tables.
+Targets contain the information to compile a program.
+Any target may be selected and run, except for `deps`. (which isn't a target)
+```toml
+key = "value"
+keybool = true
+keylist = ["value", "value"]
+```
+
+## _default
+Mortar will run the target named `_default` if no target is specified at the command line.
+
+### com
+`com` is the compilation command. (`g++` by default)
+
+### exclude
+`exclude` is a list of regexes for files to exclude from compilation. (default is empty)
+
+### include
+`include` is a list of regexes for files to manually include in compilation that have been excluded by `exclude`. (default is empty)
+
+You may exclude everything except the include files by setting `exclude` to `[".*"]`.
+
+### oarg
+`oarg` is a list of arguments to be passed to `com`.
+
+### l
+`l` is a list of library names to be passed to `com`. (with `-l` prepended)
+
+### out
+`out` is the output binary's path relative to the current working directory of Mortar. (`a.out` by default)
+
+### threads
+`threads` is the number of threads to use during compilation. (max CPU threads by default, can be overidden with the `-j` flag)
+
+### compileHeaders
+`compileHeaders` is whether or not to compile headers to gch files. (I haven't noticed any performance boosts in small programs.)
+
+### before
+`before` is the command to run before compilation.
+
+### beforeoptional
+`beforeoptional` is whether or not the `before` command is required to succeed to continue compilation. (`false` by default)
+
+### after
+`after` is the command to run after compilation.
+
+# Inheritance
+`inherits` may be set to the name of a target to inherit values from that target.
+
+Lists are combined with the inherited valued. (uses inherited value if inheriting target's value is undefined)
+
+Non-lists are replaced by the value of the inheriting target. (uses inherited value if inheriting target's value is undefined)
+
+# Runners
+A target may set the `type` key to `command` to become a runner.
+The key `target` must be defined and set to a valid target.
+The key `command` must be set to a command to run.
+
+# Deps
+`deps` is a list of tables containing git dependencies.
+- git is the only supported download method.
+
+## Adding a dependency
+You can add a depency with the following TOML:
+```toml
+[[deps]]
+url = "https://example.com/path/to/repository.git"
+ipath = "pathtofolder"
+cpath = "pathtofolder"
+exclude = ["path1", "file1", "path/tofile"]
+```
+
+### url
+`url` is the link to the git repository of the dependency.
+
+### cpath
+`cpath` is the path to copy the files from under the repository. (if you only want part of the repository) (use `.` for the entire repository)
+
+### ipath
+`ipath` is the path to put `cpath` under `include`. (so you can put a dependency in its own folder) (`include/` is prepended to this value)
+
+### exclude
+`exclude` is a list of paths to exclude from being moved into `ipath`. (if you don't want certain files) (useful for excluding test cpp files, etc.)
+
+# Example
+[Mortar's .mort file](/.mort)
