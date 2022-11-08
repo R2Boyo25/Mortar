@@ -15,7 +15,7 @@ keylist = ["value", "value"]
 Mortar will run the target named `_default` if no target is specified at the command line.
 
 ### com
-`com` is the compilation command. (`g++` by default)
+`com` is the compilation command. (`g++` by default, can be overidden with the `-c` flag))
 
 ### exclude
 `exclude` is a list of regexes for files to exclude from compilation. (default is empty)
