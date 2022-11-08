@@ -42,6 +42,7 @@ bool SHAREDOBJECT = false;
 toml::table CONFIG;
 string runcommand = "";
 string TARGETNAME = "";
+string COMPILER = "";
 std::vector<std::string> EXCLUDE = {};
 std::vector<std::string> INCLUDE = {};
 
@@ -305,6 +306,15 @@ int oComp(string com = "g++", vector<string> args = {}) {
   return res;
 }
 
+bool envvar(char *name) {
+  auto v = getenv(name);
+  if (v != NULL) {
+    return stoi(v);
+  }
+
+  return false;
+}
+
 void compTarget(string target) {
   toml::table config;
 
@@ -366,8 +376,22 @@ void compTarget(string target) {
       }
     }
 
+    if (configInherits(ctarg)) {
+      if (configValueExists(tableToMap(getConfigInheritance(ctarg)), "com")) {
+        com = getInheritedValue<std::string>(ctarg, "com");
+      }
+    }
+
     if (ctarg.count("com")) {
       com = get<string>(ctarg.at("com"));
+    }
+
+    if (getenv((char *)"DISTCC_HOSTS") != NULL) {
+      com = "distcc";
+    }
+
+    if (COMPILER != "") {
+      com = COMPILER;
     }
 
     if (ctarg.count("exclude")) {
@@ -543,7 +567,9 @@ int makeCLI(int argc, char **argv) {
   auto helpmode = (command("help").set(selected, mode::help) |
                    option("-h", "--help").set(selected, mode::help));
 
-  auto opts = ((option("-j", "--threads") & number("thread count", NTHREADS)));
+  auto opts =
+      ((option("-j", "--threads") & number("thread count", NTHREADS)) |
+       (option("-c", "--compiler") & value("compiler command", COMPILER)));
 
   auto cli = (_defaultMode | cleanmode | helpmode, opts);
 
@@ -565,15 +591,6 @@ int makeCLI(int argc, char **argv) {
   std::cout << manpage(cli);
 
   return 1;
-}
-
-bool envvar(char *name) {
-  auto v = getenv(name);
-  if (v != NULL) {
-    return stoi(v);
-  }
-
-  return false;
 }
 
 int main(int argc, char *argv[]) {
