@@ -16,8 +16,9 @@ if not os.path.exists("include/doctest"):
     os.system("rm -rf tmp")
 
 if len(sys.argv) > 1:
-    if os.system("g++ -Ofast -omortar *.cpp include/doctest/parts/doctest.cpp -DDOCTEST_CONFIG_INCLUDE_TYPE_TRAITS -DDOCTEST_CONFIG_NO_UNPREFIXED_OPTIONS -std=c++17 -lpthread -Iinclude"):
-        sys.exit(1)
-else:
-    if os.system("g++ -Ofast -omortar *.cpp include/doctest/parts/doctest.cpp -DDOCTEST_CONFIG_DISABLE -std=c++17 -lpthread -Iinclude"):
-        sys.exit(1)
+    if (sys.argv[1] == "--tests"):
+        if os.system("g++ -Ofast -omortar *.cpp include/doctest/parts/doctest.cpp -DDOCTEST_CONFIG_INCLUDE_TYPE_TRAITS -DDOCTEST_CONFIG_NO_UNPREFIXED_OPTIONS -std=c++17 -lpthread -Iinclude"):
+            sys.exit(1)
+        sys.exit(0)
+if os.system("g++ -Ofast -omortar *.cpp include/doctest/parts/doctest.cpp -DDOCTEST_CONFIG_DISABLE -std=c++17 -lpthread -Iinclude"):
+    sys.exit(1)
