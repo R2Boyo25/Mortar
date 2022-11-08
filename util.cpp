@@ -1,4 +1,5 @@
 #include "util.hpp"
+#include <algorithm>
 #include <regex>
 #include <string>
 #include <vector>
@@ -491,7 +492,7 @@ std::vector<std::string> includeExclude(std::vector<std::string> include,
   return excluded;
 }
 
-TEST_CASE("includeExclude") {
+TEST_CASE("[vector] includeExclude") {
   std::vector<std::string> include;
   std::vector<std::string> exclude;
   std::vector<std::string> input;
@@ -506,6 +507,81 @@ TEST_CASE("includeExclude") {
   include = {};
   exclude = {};
   CHECK(includeExclude(include, exclude, input) == input);
+}
+
+bool includeExclude(std::vector<std::string> include,
+                    std::vector<std::string> exclude, std::string file) {
+  bool excluded = false;
+
+  for (auto &filter : exclude) {
+    std::regex re(filter);
+    if (std::regex_match(removeDotSlash(file), re)) {
+      excluded = true;
+    }
+  }
+
+  for (auto &filter : include) {
+    std::regex re(filter);
+    if (std::regex_match(removeDotSlash(file), re)) {
+      excluded = false;
+    }
+  }
+
+  return excluded;
+}
+
+TEST_CASE("[string -> bool] includeExclude") {
+  std::vector<std::string> include = {"test/.*\\.txt"};
+  std::vector<std::string> exclude = {"test/.*"};
+
+  CHECK(includeExclude(include, exclude, "test/d.xml"));
+  CHECK_FALSE(includeExclude(include, exclude, "test/aa.txt"));
+  CHECK_FALSE(includeExclude(include, exclude, "a/b/c.yml"));
+
+  include = {};
+  exclude = {};
+  CHECK_FALSE(includeExclude(include, exclude, "test.txt"));
+  CHECK_FALSE(includeExclude(include, exclude, "a/b.xml"));
+  CHECK_FALSE(includeExclude(include, exclude, "a/b/c.glade"));
+}
+
+std::vector<std::string> getExcluded(std::vector<std::string> include,
+                                     std::vector<std::string> exclude,
+                                     std::vector<std::string> files) {
+  std::vector<std::string> excluded = {};
+
+  for (auto &filter : exclude) {
+    for (auto &file : filterFilesRegex(filter, files)) {
+      if (!any_of(excluded.begin(), excluded.end(),
+                  [&](const string &elem) { return elem == file; })) {
+        excluded.push_back(file);
+      }
+    }
+  }
+
+  for (auto &filter : include) {
+    excluded = filterOutFilesRegex(filter, excluded);
+  }
+
+  return excluded;
+}
+
+TEST_CASE("getExcluded") {
+  std::vector<std::string> include;
+  std::vector<std::string> exclude;
+  std::vector<std::string> input;
+  std::vector<std::string> output;
+
+  include = {"test/.*\\.txt"};
+  exclude = {"test/.*"};
+
+  input = {"a", "test/b", "./test/c", "test/d.txt", "test/d.cpp", "./other/e"};
+  output = {"test/b", "./test/c", "test/d.cpp"};
+  CHECK(getExcluded(include, exclude, input) == output);
+  include = {};
+  exclude = {};
+  output = {};
+  CHECK(getExcluded(include, exclude, input) == output);
 }
 
 } // namespace util

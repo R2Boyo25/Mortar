@@ -85,7 +85,10 @@ exclude = ["path1", "file1", "path/tofile"]
 `ipath` is the path to put `cpath` under `include`. (so you can put a dependency in its own folder) (`include/` is prepended to this value)
 
 ### exclude
-`exclude` is a list of paths to exclude from being moved into `ipath`. (if you don't want certain files) (useful for excluding test cpp files, etc.)
+`exclude` is a list of regexes for paths to exclude from being moved into `ipath`. (if you don't want certain files) (useful for excluding a library's test cpp files, etc.) 
+
+### include
+`include` is a list of regexes for path to include that have been excluded by `exclude`. (basically the same as a target's `include` & `exclude`, functionally)
 
 # Example
 [Mortar's mortar.toml file](/mortar.toml)

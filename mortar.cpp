@@ -79,11 +79,21 @@ void downloadDependency(map<string, toml::value> repo) {
     r = system(
         ("git clone -q --depth=1 " + get<string>(repo["url"]) + " " + folder)
             .c_str());
-    if (repo.count("exclude")) {
-      for (const string &file : get<vector<string>>(repo["exclude"])) {
-        r = system(("rm -rf " + folder + file).c_str());
-      }
+
+    std::vector<std::string> exclude = {};
+    if (configValueExists(repo, "exclude")) {
+      exclude = getConfigValue<std::vector<std::string>>(repo, "exclude");
     }
+
+    std::vector<std::string> include = {};
+    if (configValueExists(repo, "include")) {
+      include = getConfigValue<std::vector<std::string>>(repo, "include");
+    }
+
+    for (auto &file : getExcluded(include, exclude, getFiles("./"))) {
+      r = system(("rm -rf " + folder + file).c_str());
+    }
+
     r = system(
         ("mkdir -p $(dirname \"./include/" + get<string>(repo["ipath"]) + "\")")
             .c_str());
@@ -309,7 +319,7 @@ int oComp(string com = "g++", vector<string> args = {}) {
 bool envvar(char *name) {
   auto v = getenv(name);
   if (v != NULL) {
-    return stoi(v);
+    return std::stoi(v);
   }
 
   return false;

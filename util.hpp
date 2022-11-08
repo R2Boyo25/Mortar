@@ -72,4 +72,11 @@ std::vector<std::string> filterOutFilesRegex(std::string regex,
 std::vector<std::string> includeExclude(std::vector<std::string> include,
                                         std::vector<std::string> exclude,
                                         std::vector<std::string> files);
+
+bool includeExclude(std::vector<std::string> include,
+                    std::vector<std::string> exclude, std::string file);
+
+std::vector<std::string> getExcluded(std::vector<std::string> include,
+                                     std::vector<std::string> exclude,
+                                     std::vector<std::string> files);
 } // namespace util
