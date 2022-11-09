@@ -2,7 +2,8 @@
 out = "mortar"
 oarg = [
     "-Ofast",
-    "-std=c++17"
+    "-std=c++17",
+    "-DCOMMITHASH=\"\\\"`git rev-parse HEAD`\\\"\""
 ]
 l = [
     "pthread"
@@ -28,28 +29,28 @@ include = ["include/doctest/parts/doctest\\.cpp"]
 [test]
 type = "command"
 target = "_debug"
-command = "./mortar -dt-e"
+command = "$EXECUTABLE -dt-e"
 
 [test_success]
 type = "command"
 target = "_debug"
-command = "./mortar -dt-e -dt-s"
+command = "$EXECUTABLE -dt-e -dt-s"
 
 [debug_gdb]
 type = "command"
 target = "_debug"
-command = "gdb ./mortar -ex run"
+command = "gdb $EXECUTABLE -ex run"
 
 [debug]
 type = "command"
 target = "_debug"
-command = "./mortar"
+command = "$EXECUTABLE"
 
 [[deps]]
 url = "https://github.com/doctest/doctest"
 cpath = "doctest"
 ipath = "doctest"
-exclude = ["extensions", "BUILD.bazel"]
+exclude = ["doctest/extensions", "doctest/BUILD.bazel"]
 
 [[deps]]
 url = "https://github.com/muellan/clipp"
