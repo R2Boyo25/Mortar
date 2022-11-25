@@ -46,6 +46,11 @@ type = "command"
 target = "_debug"
 command = "$EXECUTABLE"
 
+[run]
+type = "command"
+target = "_default"
+command = "$EXECUTABLE"
+
 [[deps]]
 url = "https://github.com/doctest/doctest"
 cpath = "doctest"

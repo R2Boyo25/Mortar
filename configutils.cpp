@@ -1,5 +1,19 @@
 #include "configutils.hpp"
 
+bool configExists() {
+  return std::filesystem::exists(".mort") || std::filesystem::exists("mortar.toml");
+}
+
+void navigateDirectories() {
+  while (!configExists()) {
+    std::filesystem::current_path(std::filesystem::current_path().parent_path());
+    if (std::filesystem::current_path() == "/") {
+      std::cout << "Unable to find configuration file in current directory or any of parent directories." << std::endl;
+      std::exit(1);
+    }
+  }
+}
+
 toml::table loadConfig() {
   if (std::filesystem::exists(".mort")) {
     try {

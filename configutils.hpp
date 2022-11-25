@@ -5,6 +5,8 @@
 #include <toml/toml.hpp>
 #include <vector>
 
+void navigateDirectories();
+
 extern toml::table CONFIG;
 
 toml::table loadConfig();

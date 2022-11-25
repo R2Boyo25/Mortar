@@ -701,11 +701,9 @@ int makeCLI(int argc, char **argv) {
            .set(SHAREDOBJECT)
            .doc("Generate a shared object instead of a binary."));
 
-  auto cli = ((opt_value("target", TARGETNAME)
-                   .set(selected, mode::clean)
-                   .doc("Remove build artifacts."),
+  auto cli = ((opt_value("target", TARGETNAME),
                opts) |
-              command("clean"));
+              command("clean").set(selected, mode::clean));
 
   if (parse(argc, argv, cli)) {
     switch (selected) {
@@ -714,7 +712,7 @@ int makeCLI(int argc, char **argv) {
       break;
     case mode::help:
       std::cout << manpage(cli);
-      return 1;
+      return 0;
       break;
     case mode::version:
       return mortar_version();
@@ -725,12 +723,17 @@ int makeCLI(int argc, char **argv) {
     }
   }
 
-  std::cout << manpage(cli);
+  return mortar_main();
+  
+  //std::cout << "Oops" << std::endl;
+  
+  //std::cout << manpage(cli);
 
   return 1;
 }
 
 int main(int argc, char *argv[]) {
+  navigateDirectories();
 #ifndef DOCTEST_CONFIG_DISABLE
   doctest::Context context;
 
