@@ -29,6 +29,9 @@ Mortar will run the target named `_default` if no target is specified at the com
 
 You may exclude everything except the include files by setting `exclude` to `[".*"]`.
 
+### relink
+`relink` is a list of regexes for files that trigger a relinking of the project. (ex: if you're linking Rust staticlibs or something - `.*\\.rs`)
+
 ### oarg
 `oarg` is a list of arguments to be passed to `com`.
 

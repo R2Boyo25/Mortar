@@ -57,6 +57,10 @@ std::vector<std::string> INCLUDE = {};
 bool DEBUG = false;
 std::vector<std::string> deplinks = {};
 std::map<std::string, std::string> standardvars = {};
+std::vector<std::string> assumenewfiles = {};
+std::vector<std::string> assumeoldfiles = {};
+std::vector<std::string> relinkif = {};
+bool RELINK = false;
 
 std::string escapeQuotes(std::string content) {
   std::string ocontent = content;
@@ -178,6 +182,8 @@ void downloadDependency(map<string, toml::value> repo) {
       EXCLUDE.push_back("include/" + get<std::string>(repo["ipath"]) + "/.*");
     }
   }
+
+  (void)r;
 }
 
 void downloadDependencies(vector<map<string, toml::value>> deps) {
@@ -205,6 +211,8 @@ void downloadDependencies(vector<map<string, toml::value>> deps) {
 
     r = system("rm -rf tmp");
   }
+
+  (void)r;
 }
 
 int rawComp(string file, string com = "g++", vector<string> args = {}) {
@@ -224,45 +232,41 @@ int rawComp(string file, string com = "g++", vector<string> args = {}) {
 tuple<string, int> compO(string cppfile, string com = "g++",
                          vector<string> args = {}, int THREADID = 1,
                          string PROGRESS = "") {
-  if (fileChanged(cppfile)) {
-    CANPRINT.lock();
-    cout << CYN << "[" << ORN << THREADID << ", " << PROGRESS << CYN
-         << "]: " << GRN << cppfile.substr(2, cppfile.size() - 1) << RES
-         << endl;
-    CANPRINT.unlock();
-    vector<string> nargs;
-    if (getExt(cppfile) == "cpp" or getExt(cppfile) == "c") {
-      nargs = {"-c", "-Ibuild"};
-      if (SHAREDOBJECT) {
-        nargs.push_back("-fPIC");
-      }
-    } else {
-      nargs = {"-Ibuild"};
+  CANPRINT.lock();
+  cout << CYN << "[" << ORN << THREADID << ", " << PROGRESS << CYN
+       << "]: " << GRN << cppfile.substr(2, cppfile.size() - 1) << RES
+       << endl;
+  CANPRINT.unlock();
+  vector<string> nargs;
+  if (getExt(cppfile) == "cpp" or getExt(cppfile) == "c") {
+    nargs = {"-c", "-Ibuild"};
+    if (SHAREDOBJECT) {
+      nargs.push_back("-fPIC");
     }
-    for (const string &arg : args) {
-      if (!startsWith(arg, "-o") and !startsWith(arg, "-l")) {
-        nargs.push_back(arg);
-      } else if (startsWith(arg, "-l")) {
-        if (getExt(cppfile) == "cpp" or getExt(cppfile) == "c") {
-          nargs.push_back(arg);
-        }
-      } else if (startsWith(arg, "-o")) {
-        if (getExt(cppfile) == "cpp" or getExt(cppfile) == "c") {
-          nargs.push_back("-o" + string("./build/") +
-                          removeDotSlash(cppfile + ".o"));
-        } else {
-          nargs.push_back("-o" + string("./build/") +
-                          removeDotSlash(cppfile + ".gch"));
-        }
-      }
-    }
-
-    int code = rawComp(cppfile, com, nargs);
-
-    return {"./build/" + replaceExt(cppfile, ".o"), code};
   } else {
-    return {"./build/" + replaceExt(cppfile, ".o"), 0};
+    nargs = {"-Ibuild"};
   }
+  for (const string &arg : args) {
+    if (!startsWith(arg, "-o") and !startsWith(arg, "-l")) {
+      nargs.push_back(arg);
+    } else if (startsWith(arg, "-l")) {
+      if (getExt(cppfile) == "cpp" or getExt(cppfile) == "c") {
+        nargs.push_back(arg);
+      }
+    } else if (startsWith(arg, "-o")) {
+      if (getExt(cppfile) == "cpp" or getExt(cppfile) == "c") {
+        nargs.push_back("-o" + string("./build/") +
+                        removeDotSlash(cppfile + ".o"));
+      } else {
+        nargs.push_back("-o" + string("./build/") +
+                        removeDotSlash(cppfile + ".gch"));
+      }
+    }
+  }
+
+  int code = rawComp(cppfile, com, nargs);
+
+  return {"./build/" + replaceExt(cppfile, ".o"), code};
 }
 
 void threadComp(vector<string> files, string com = "g++",
@@ -300,6 +304,33 @@ void threadComp(vector<string> files, string com = "g++",
   CANPRINT.unlock();
 }
 
+int linkObjects(std::string com, std::vector<std::string> cfiles, std::vector<std::string> args) {
+  std::string j_args  = join(args);
+
+  vector<string> ofiles = {};
+
+  for (string &file : cfiles) {
+    if (getExt(file) == "c" or getExt(file) == "cpp") {
+      ofiles.push_back(file + ".o");
+    }
+  }
+  
+  std::string j_files = join(wrap(toBuild(ofiles)));
+
+  std::string linkcommand;
+
+  if (SHAREDOBJECT) {
+    linkcommand = join({com, j_files, j_args, "-shared"});
+  } else {
+    linkcommand = join({com, j_files, j_args});
+  }
+
+  cout << CYN << "[" << ORN << "MORTAR" << CYN << "]: "
+       << "Linking..." << RES << endl;
+  
+  return System(linkcommand, standardvars);;
+}
+
 int oComp(string com = "g++", vector<string> args = {}) {
   auto MAINSTART = chrono::system_clock::now();
   string jargs = join(args);
@@ -315,9 +346,38 @@ int oComp(string com = "g++", vector<string> args = {}) {
 
   vector<string> pfiles = {};
 
+  std::vector<std::string> excludeall = {".*"};
+
+  for (auto& relinkfile : includeExclude(relinkif, excludeall, getFiles())) {
+    if (fileChanged(relinkfile)) {
+      RELINK = true;
+      break;
+    }
+  }
+
   for (const string &file : wfiles) {
     makedirs(file);
-    if (fileChanged(file)) {
+    std::vector<std::string> vfile = {file};
+    
+    bool assumed = includeExclude(assumenewfiles, excludeall, vfile).size() > 0;
+    bool assumed_old = includeExclude(assumeoldfiles, excludeall, vfile).size() > 0;
+    if (assumed) {
+      if (DEBUG) {
+        CANPRINT.lock();
+        std::cout << "Assuming " << file << " is new." << std::endl;
+        CANPRINT.unlock();
+      }
+    }
+
+    if (assumed_old) {
+      if (DEBUG) {
+        CANPRINT.lock();
+        std::cout << "Assuming " << file << " is old." << std::endl;
+        CANPRINT.unlock();
+      }
+    }
+    
+    if ((fileChanged(file) || assumed) && !assumed_old) {
       pfiles.push_back(file);
     }
   }
@@ -335,8 +395,19 @@ int oComp(string com = "g++", vector<string> args = {}) {
       USED++;
     }
   }
-
+  
   if (USED == 0) {
+    if (RELINK) {
+      int res = linkObjects(com, wfiles, args);
+      (void)res;
+
+      auto LINKDONE = chrono::system_clock::now();
+  
+      cout << CYN << "[" << ORN << "MORTAR" << CYN << "]: Done. Linking took "
+           << chrono::duration_cast<chrono::seconds>(LINKDONE - MAINSTART).count() << " seconds\n"
+           << RES;
+    }
+    
     if (runcommand != "") {
       int rcode = System(runcommand.c_str(), standardvars);
       exit(rcode);
@@ -361,36 +432,15 @@ int oComp(string com = "g++", vector<string> args = {}) {
     }
   }
 
-  vector<string> efiles = {};
+  auto COMPILATIONDONE = chrono::system_clock::now();
 
-  for (string &file : wfiles) {
-    if (getExt(file) == "c" or getExt(file) == "cpp") {
-      efiles.push_back(file + ".o");
-    }
-  }
+  int res = linkObjects(com, wfiles, args);
 
-  // define command to run to compile object files
-
-  string jofiles = join(wrap(toBuild(efiles)));
-  string comm;
-
-  if (SHAREDOBJECT) {
-    comm = join({com, jofiles, jargs, "-shared"});
-  } else {
-    comm = join({com, jofiles, jargs});
-  }
-
-  cout << CYN << "[" << ORN << "MORTAR" << CYN << "]: "
-       << "Combining object files" << RES << endl;
-
-  const char *ccomm = comm.c_str();
-
-  auto MAINNOW = chrono::system_clock::now();
-
-  int res = System(ccomm, standardvars);
-  cout << CYN << "[" << ORN << "MORTAR" << CYN << "]: Compilation completed in "
-       << chrono::duration_cast<chrono::seconds>(MAINNOW - MAINSTART).count()
-       << " seconds\n"
+  auto LINKDONE = chrono::system_clock::now();
+  
+  cout << CYN << "[" << ORN << "MORTAR" << CYN << "]: Done. Compilation took "
+       << chrono::duration_cast<chrono::seconds>(COMPILATIONDONE - MAINSTART).count()
+       << " seconds and linking took " << chrono::duration_cast<chrono::seconds>(LINKDONE - COMPILATIONDONE).count() << " seconds\n"
        << RES;
   return res;
 }
@@ -409,7 +459,7 @@ void compTarget(string target) {
 
   try {
     config = loadConfig();
-  } catch (std::runtime_error) {
+  } catch (std::runtime_error const&) {
     cout << "No .mort / mortar.toml file found, or it is improperly formatted"
          << endl;
     exit(1);
@@ -419,6 +469,7 @@ void compTarget(string target) {
 
   if (!exists("build")) {
     int r = system("mkdir build");
+    (void)r;
   }
 
   if (!config.count(target)) {
@@ -528,6 +579,20 @@ void compTarget(string target) {
       }
     }
 
+    if (ctarg.count("relink")) {
+      for (auto& reg : get<vector<string>>(ctarg["relink"])) {
+        relinkif.push_back(reg);
+      }
+    }
+
+    if (configInherits(ctarg)) {
+      if (configValueExists(tableToMap(getConfigInheritance(ctarg)), "relink")) {
+        for (auto& reg : getInheritedValue<vector<string>>(ctarg, "relink")) {
+          relinkif.push_back(reg);
+        }
+      }
+    }
+
     if (ctarg.count("l")) {
       for (string const &li : get<vector<string>>(ctarg["l"])) {
         link += "-l" + li + " ";
@@ -604,31 +669,68 @@ void compTarget(string target) {
 
     standardvars["EXECUTABLE"] = "./" + outname;
 
-    if (ctarg.count("before")) {
-      int r = System(get<string>(ctarg["before"]).c_str(), standardvars);
+    bool hasbefore = false;
+    std::string before = "";
+
+    if (configInherits(ctarg)) {
+      if (configValueExists(tableToMap(getConfigInheritance(ctarg)), "before")) {
+        before = getInheritedValue<std::string>(ctarg, "before");
+        hasbefore = true;
+      }
+    }
+
+    if (configValueExists(ctarg, "before")) {
+      before = getConfigValue<std::string>(ctarg, "before");
+      hasbefore = true;
+    }
+
+    bool beforeoptional = false;
+    
+    if (configInherits(ctarg)) {
+      if (configValueExists(tableToMap(getConfigInheritance(ctarg)), "beforeoptional")) {
+        beforeoptional = getInheritedValue<bool>(ctarg, "beforeoptional");
+      }
+    }
+
+    if (configValueExists(ctarg, "beforeoptional")) {
+      beforeoptional = getConfigValue<bool>(ctarg, "beforeoptional");
+    }
+    
+    
+    if (hasbefore) {
+      int r = System(before.c_str(), standardvars);
       if (r != 0) {
-        if (ctarg.count("beforeoptional")) {
-          if (!get<bool>(ctarg["beforeoptional"])) {
-            cout << RED << "[" << ORN << "MORTAR" << RED
-                 << "]: Before command failed - set beforeoptional to true to "
-                    "make optional"
-                 << RES << endl;
-            exit(1);
-          }
-        } else {
+        if (!beforeoptional) {
           cout << RED << "[" << ORN << "MORTAR" << RED
                << "]: Before command failed - set beforeoptional to true to "
-                  "make optional"
+            "make optional"
                << RES << endl;
           exit(1);
         }
       }
     }
 
-    if (ctarg.count("after")) {
+    bool hasafter = false;
+    std::string after = "";
+
+    if (configInherits(ctarg)) {
+      if (configValueExists(tableToMap(getConfigInheritance(ctarg)), "after")) {
+        after = getInheritedValue<std::string>(ctarg, "after");
+        hasafter = true;
+      }
+    }
+
+    if (configValueExists(ctarg, "after")) {
+      after = getConfigValue<std::string>(ctarg, "after");
+      hasafter = true;
+    }
+    
+
+    if (hasafter) {
       if (!oComp(com, {out, oarg, link})) {
         int rcode =
-            System(get<string>(ctarg.at("after")).c_str(), standardvars);
+            System(after.c_str(), standardvars);
+        (void)rcode;
       }
     } else {
       oComp(com, {out, oarg, link});
@@ -636,6 +738,7 @@ void compTarget(string target) {
 
     if (runcommand != "") {
       int rcode = System(runcommand.c_str(), standardvars);
+      (void)rcode;
     }
   }
 }
@@ -699,7 +802,13 @@ int makeCLI(int argc, char **argv) {
            .doc("Print Mortar version and exit."),
        option("-so", "--sharedobject")
            .set(SHAREDOBJECT)
-           .doc("Generate a shared object instead of a binary."));
+           .doc("Generate a shared object instead of a binary."),
+       repeatable( option("-W", "--what-if", "--new-file", "--assume-new")
+                   & value("FILE", assumenewfiles) )
+           .doc("Consider FILE to be infinitely new."),
+       repeatable( option("-O", "--old-file", "--assume-old")
+                   & value("FILE", assumeoldfiles) )
+           .doc("Consider FILE to be very old and don't rebuild it."));
 
   auto cli = ((opt_value("target", TARGETNAME),
                opts) |

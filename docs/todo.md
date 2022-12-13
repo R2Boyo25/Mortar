@@ -3,9 +3,11 @@
 - setup
 - cmake
 - copy some flags from `make`
-  - -f FILE, --file FILE, --mortarfile FILE
-  - -o FILE, --old-file=FILE, --assume-old=FILE
-  - -W FILE, --what-if=FILE, --new-file=FILE, --assume-new=FILE
-  - -C DIRECTORY, --directory=DIRECTORY
+  - [ ] -f FILE, --file FILE, --mortarfile FILE
+  - [x] -O FILE, --old-file=FILE, --assume-old=FILE
+  - [x] -W FILE, --what-if=FILE, --new-file=FILE, --assume-new=FILE
+  - [ ] -C DIRECTORY, --directory=DIRECTORY
 - Think about the fact that you might need to do some weird complex configurations for dependencies
 - -r, --norecompile, --onlyrun
+- [x] relink when file in `relink` is changed
+- [ ] after gets run when a `relink` file is changed

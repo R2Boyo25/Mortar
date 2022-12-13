@@ -3,7 +3,8 @@ out = "mortar"
 oarg = [
     "-Ofast",
     "-std=c++17",
-    '-DCOMMITHASH=\"\\\"`git rev-parse HEAD`\\\"\"'
+    '-DCOMMITHASH="\\"`git rev-parse HEAD`\\""',
+    "-Wall"
 ]
 l = [
     "pthread"

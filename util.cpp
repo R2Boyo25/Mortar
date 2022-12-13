@@ -41,6 +41,7 @@ int Popen(string command, string STDIN) {
     return 1;
   const char *psData = STDIN.c_str();
   size_t nNumWritten = fwrite(psData, 1, STDIN.size(), pFile);
+  (void)nNumWritten;
 
   return pclose(pFile);
   pFile = NULL;
@@ -81,7 +82,7 @@ string join(vector<string> v,
             string delimiter) { // https://stackoverflow.com/a/20986194
   stringstream ss;
   const int v_size = v.size();
-  for (size_t i = 0; i < v_size; ++i) {
+  for (size_t i = 0; i < (long unsigned int)v_size; ++i) {
     if (i != 0)
       ss << delimiter;
     ss << v[i];
@@ -282,6 +283,7 @@ TEST_CASE("getExt") {
 
 void makedirs(std::string filename) {
   int r = system(("mkdir -p $(dirname \"./build/" + filename + "\")").c_str());
+  (void)r;
 }
 
 std::vector<std::string> toBuild(std::vector<std::string> files) {
