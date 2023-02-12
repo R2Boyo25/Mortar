@@ -1,8 +1,10 @@
 import os
 import sys
 
+if "SHELL" not in os.environ:
+    os.environ["SHELL"] = "/bin/bash"
+
 os.system("$SHELL .avalon/fetchdeps.sh")
-os.system('echo "$SHELL .avalon/fetchdeps.sh"')
 
 if len(sys.argv) > 1:
     if (sys.argv[1] == "--tests"):
