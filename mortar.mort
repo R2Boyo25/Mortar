@@ -1,0 +1,13 @@
+EXECUTABLE = "mortar2"
+
+h:
+  build: .*\.h
+    echo H $FILE
+
+_default:
+  before:
+    echo "Before"
+  build: .*\.cpp ,per
+    echo $FILE $OBJECT_FILE
+  objects:
+    #g++ $OBJECT_FILES -o $EXECUTABLE

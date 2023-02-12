@@ -15,14 +15,15 @@
 #include <mutex>
 #include <stdio.h>
 #include <thread>
-#include <toml/toml.hpp>
+//#include <toml/toml.hpp>
 #include <tuple>
 
 #include <clipp/clipp.h>
 
 #include "changed.hpp"
-#include "configutils.hpp"
+//#include "configutils.hpp"
 #include "util.hpp"
+#include "parser/parse.hpp"
 
 using namespace std;
 using namespace std::filesystem;
@@ -45,12 +46,10 @@ mutex MODIFY_GLOBALS;
 int NTHREADS = std::thread::hardware_concurrency();
 int GLOBAL_COUNT = 0;
 int GLOBAL_PROGRESS = 0;
-string outname = "a.out";
-bool compileheaders = false;
-bool SHAREDOBJECT = false;
-toml::table CONFIG;
-string runcommand = "";
+//toml::table CONFIG;
+Config CONFIG;
 string TARGETNAME = "";
+std::string outname;
 string COMPILER = "";
 std::vector<std::string> EXCLUDE = {};
 std::vector<std::string> INCLUDE = {};
@@ -60,162 +59,8 @@ std::map<std::string, std::string> standardvars = {};
 std::vector<std::string> assumenewfiles = {};
 std::vector<std::string> assumeoldfiles = {};
 std::vector<std::string> relinkif = {};
-bool RELINK = false;
 
-std::string escapeQuotes(std::string content) {
-  std::string ocontent = content;
-
-  std::regex re1("\\\"");
-
-  ocontent = std::regex_replace(ocontent, re1, "\\\"");
-
-  std::regex re2("\"");
-
-  ocontent = std::regex_replace(ocontent, re2, "\"");
-
-  return ocontent;
-}
-
-int System(std::string command,
-           std::map<std::string, std::string> envvars = {}) {
-  std::string processedcommand;
-
-  processedcommand = escapeQuotes(command);
-
-  for (auto &var : envvars) {
-    processedcommand =
-        escapeQuotes("export " + var.first + "=\"" + var.second + "\"; ") +
-        processedcommand;
-  }
-
-  std::regex re1("\\$");
-
-  processedcommand = std::regex_replace(processedcommand, re1, "\\$");
-
-  processedcommand = "bash -c \"" + processedcommand + "\"";
-
-  if (DEBUG) {
-    CANPRINT.lock();
-    std::cout << processedcommand << std::endl;
-    CANPRINT.unlock();
-  }
-
-  return system(processedcommand.c_str());
-}
-
-void downloadDependency(map<string, toml::value> repo) {
-  char BACKSLASH = '/';
-  int r;
-  if (!(repo.count("url")) or !(repo.count("cpath")) or
-      !(repo.count("ipath"))) {
-    CANPRINT.lock();
-    std::cout << "Dependency missing git url, copy path, or include path"
-              << std::endl;
-    CANPRINT.unlock();
-    r = system("rm -rf tmp");
-    exit(1);
-  }
-  // I have no idea what I just wrote here,
-  // it is a mess because I didn't feel like messing with folder copying in
-  // C++ r is to get the compiler to stop complaining
-  if (!exists("include/" + get<string>(repo["ipath"]))) {
-    string user =
-        split(get<string>(repo["url"]),
-              BACKSLASH)[split(get<string>(repo["url"]), BACKSLASH).size() - 2];
-    string gitrepo =
-        split(get<string>(repo["url"]),
-              BACKSLASH)[split(get<string>(repo["url"]), BACKSLASH).size() - 1];
-    string folder = "tmp/" + user + "/" + gitrepo + "/";
-
-    CANPRINT.lock();
-    cout << "Downloading dependency \"" << user << "/" << gitrepo << "\"..."
-         << endl;
-    CANPRINT.unlock();
-
-    r = system(("mkdir tmp/" + user).c_str());
-    r = system(
-        ("git clone -q --depth=1 " + get<string>(repo["url"]) + " " + folder)
-            .c_str());
-
-    std::vector<std::string> exclude = {};
-    if (configValueExists(repo, "exclude")) {
-      exclude = getConfigValue<std::vector<std::string>>(repo, "exclude");
-    }
-
-    std::vector<std::string> include = {};
-    if (configValueExists(repo, "include")) {
-      include = getConfigValue<std::vector<std::string>>(repo, "include");
-    }
-
-    for (auto &file : getExcluded(include, exclude, getFiles("./"))) {
-      r = system(("rm -rf " + folder + file).c_str());
-    }
-
-    r = system(
-        ("mkdir -p $(dirname \"./include/" + get<string>(repo["ipath"]) + "\")")
-            .c_str());
-    r = system(("cp -r " + folder + "/" + get<string>(repo["cpath"]) +
-                " include/" + get<string>(repo["ipath"]))
-                   .c_str());
-
-    if (repo.count("command")) {
-      r = system((("cd include/" + get<string>(repo["ipath"])) + "; " +
-                  get<string>(repo["command"]))
-                     .c_str());
-    }
-  }
-
-  if (configValueExists(repo, "link_paths")) {
-    for (auto &rgx :
-         getConfigValue<std::vector<std::string>>(repo, "link_paths")) {
-      for (auto &so : filterFilesRegex(
-               "include/" + rgx,
-               getFiles("include/" + get<std::string>(repo["ipath"])))) {
-        deplinks.push_back("include/" + get<std::string>(repo["ipath"]) + "/" +
-                           so);
-      }
-    }
-  }
-
-  if (configValueExists(repo, "exclude_from_compilation")) {
-    if (getConfigValue<bool>(repo, "exclude_from_compilation")) {
-      EXCLUDE.push_back("include/" + get<std::string>(repo["ipath"]) + "/.*");
-    }
-  }
-
-  (void)r;
-}
-
-void downloadDependencies(vector<map<string, toml::value>> deps) {
-  int r;
-  if (deps.size()) {
-
-    if (!exists("include")) {
-      r = system("mkdir include");
-    }
-
-    r = system("mkdir tmp");
-
-    vector<thread> threads = {};
-
-    for (map<string, toml::value> &repo : deps) {
-      thread thrd(downloadDependency, repo);
-      threads.push_back(move(thrd));
-    }
-
-    for (auto &thrd : threads) {
-      if (thrd.joinable()) {
-        thrd.join();
-      }
-    }
-
-    r = system("rm -rf tmp");
-  }
-
-  (void)r;
-}
-
-int rawComp(string file, string com = "g++", vector<string> args = {}) {
+/*int rawComp(string file, string com = "g++", vector<string> args = {}) {
   auto cargs = args;
 
   for (auto &so : deplinks) {
@@ -227,9 +72,9 @@ int rawComp(string file, string com = "g++", vector<string> args = {}) {
   const char *ccomm = comm.c_str();
 
   return System(ccomm, standardvars);
-}
+}*/
 
-tuple<string, int> compO(string cppfile, string com = "g++",
+/*tuple<string, int> compO(string cppfile, string com = "g++",
                          vector<string> args = {}, int THREADID = 1,
                          string PROGRESS = "") {
   CANPRINT.lock();
@@ -302,9 +147,9 @@ void threadComp(vector<string> files, string com = "g++",
        << " seconds\n"
        << RES;
   CANPRINT.unlock();
-}
+  }*/
 
-int linkObjects(std::string com, std::vector<std::string> cfiles, std::vector<std::string> args) {
+/*int linkObjects(std::string com, std::vector<std::string> cfiles, std::vector<std::string> args) {
   std::string j_args  = join(args);
 
   vector<string> ofiles = {};
@@ -329,9 +174,9 @@ int linkObjects(std::string com, std::vector<std::string> cfiles, std::vector<st
        << "Linking..." << RES << endl;
   
   return System(linkcommand, standardvars);;
-}
+}*/
 
-int oComp(string com = "g++", vector<string> args = {}) {
+/*int oComp(string com = "g++", vector<string> args = {}) {
   auto MAINSTART = chrono::system_clock::now();
   string jargs = join(args);
   vector<string> wfiles;
@@ -443,7 +288,7 @@ int oComp(string com = "g++", vector<string> args = {}) {
        << " seconds and linking took " << chrono::duration_cast<chrono::seconds>(LINKDONE - COMPILATIONDONE).count() << " seconds\n"
        << RES;
   return res;
-}
+}*/
 
 bool envvar(char *name) {
   auto v = getenv(name);
@@ -454,308 +299,16 @@ bool envvar(char *name) {
   return false;
 }
 
-void compTarget(string target) {
-  toml::table config;
-
-  try {
-    config = loadConfig();
-  } catch (std::runtime_error const&) {
-    cout << "No .mort / mortar.toml file found, or it is improperly formatted"
-         << endl;
-    exit(1);
-  }
-
-  CONFIG = config;
-
-  if (!exists("build")) {
-    int r = system("mkdir build");
-    (void)r;
-  }
-
-  if (!config.count(target)) {
-
-    cout << "Target " << target << " not found!" << endl;
-    return;
-
-  } else {
-
-    if (config.count("deps")) {
-      downloadDependencies(
-          get<vector<map<string, toml::value>>>(config["deps"]));
-    }
-
-    string com = "g++";
-    string oarg = "";
-    string link = "";
-    string out = "-oa.out";
-
-    std::map<toml::key, toml::value> ctarg =
-        toml::get<std::map<toml::key, toml::value>>(config.at(target));
-
-    if (configValueExists(ctarg, "type")) {
-      if (getConfigValue<string>(ctarg, "type") == "command") {
-        if (!configValueExists(ctarg, "target")) {
-          std::cout
-              << "Target type is set to command but is missing `target` key"
-              << std::endl;
-          std::exit(1);
-        }
-
-        if (!configValueExists(ctarg, "target")) {
-          std::cout
-              << "Target type is set to command but is missing `command` key"
-              << std::endl;
-          std::exit(1);
-        }
-
-        runcommand = getConfigValue<string>(ctarg, "command");
-
-        target = getConfigValue<string>(ctarg, "target");
-
-        ctarg = toml::get<std::map<toml::key, toml::value>>(config.at(target));
-      }
-    }
-
-    if (configInherits(ctarg)) {
-      if (configValueExists(tableToMap(getConfigInheritance(ctarg)), "com")) {
-        com = getInheritedValue<std::string>(ctarg, "com");
-      }
-    }
-
-    if (ctarg.count("com")) {
-      com = get<string>(ctarg.at("com"));
-    }
-
-    if (getenv((char *)"DISTCC_HOSTS") != NULL) {
-      com = "distcc";
-    }
-
-    if (COMPILER != "") {
-      com = COMPILER;
-    }
-
-    if (ctarg.count("exclude")) {
-      for (string const &li :
-           getConfigValue<vector<string>>(ctarg, "exclude")) {
-        EXCLUDE.push_back(li);
-      }
-    }
-
-    if (configInherits(ctarg)) {
-      if (configValueExists(tableToMap(getConfigInheritance(ctarg)),
-                            "exclude")) {
-        for (string const &li :
-             getInheritedValue<vector<string>>(ctarg, "exclude")) {
-          EXCLUDE.push_back(li);
-        }
-      }
-    }
-
-    if (ctarg.count("include")) {
-      INCLUDE = get<vector<string>>(ctarg["include"]);
-    }
-
-    if (configInherits(ctarg)) {
-      if (configValueExists(tableToMap(getConfigInheritance(ctarg)),
-                            "include")) {
-        for (string const &li :
-             getInheritedValue<vector<string>>(ctarg, "include")) {
-          INCLUDE.push_back(li);
-        }
-      }
-    }
-
-    if (ctarg.count("oarg")) {
-      vector<string> coargs = get<vector<string>>(ctarg["oarg"]);
-      oarg = join(coargs);
-    }
-
-    if (configInherits(ctarg)) {
-      if (configValueExists(tableToMap(getConfigInheritance(ctarg)), "oarg")) {
-        for (string const &li :
-             getInheritedValue<vector<string>>(ctarg, "oarg")) {
-          oarg += " " + li;
-        }
-      }
-    }
-
-    if (ctarg.count("relink")) {
-      for (auto& reg : get<vector<string>>(ctarg["relink"])) {
-        relinkif.push_back(reg);
-      }
-    }
-
-    if (configInherits(ctarg)) {
-      if (configValueExists(tableToMap(getConfigInheritance(ctarg)), "relink")) {
-        for (auto& reg : getInheritedValue<vector<string>>(ctarg, "relink")) {
-          relinkif.push_back(reg);
-        }
-      }
-    }
-
-    if (ctarg.count("l")) {
-      for (string const &li : get<vector<string>>(ctarg["l"])) {
-        link += "-l" + li + " ";
-      }
-    }
-
-    if (configInherits(ctarg)) {
-      if (configValueExists(tableToMap(getConfigInheritance(ctarg)), "l")) {
-        for (string const &li : getInheritedValue<vector<string>>(ctarg, "l")) {
-          link += "-l" + li + " ";
-        }
-      }
-    }
-
-    if (outname == "a.out") {
-
-      if (configInherits(ctarg)) {
-        if (configValueExists(tableToMap(getConfigInheritance(ctarg)), "out")) {
-          outname = getInheritedValue<string>(ctarg, "out");
-          out = "-o" + outname;
-        }
-      }
-
-      if (ctarg.count("out")) {
-        outname = get<string>(ctarg.at("out"));
-        out = "-o" + outname;
-      }
-
-    } else {
-      out = "-o" + outname;
-    }
-
-    if (configInherits(ctarg)) {
-      if (configValueExists(tableToMap(getConfigInheritance(ctarg)),
-                            "threads")) {
-        NTHREADS = getInheritedValue<int>(ctarg, "threads");
-      }
-    }
-
-    if (ctarg.count("threads")) {
-      NTHREADS = get<int>(ctarg.at("threads"));
-    }
-
-    if (configInherits(ctarg)) {
-      if (configValueExists(tableToMap(getConfigInheritance(ctarg)),
-                            "compileHeaders")) {
-        compileheaders = getInheritedValue<bool>(ctarg, "compileHeaders");
-      }
-    }
-
-    if (ctarg.count("compileHeaders")) {
-      compileheaders = get<bool>(ctarg.at("compileHeaders"));
-    }
-
-    if (exists("include")) {
-      oarg += " -Iinclude";
-    }
-
-    if (configInherits(ctarg)) {
-      if (configValueExists(tableToMap(getConfigInheritance(ctarg)), "env")) {
-        for (auto &item : getInheritedValue<std::map<std::string, toml::value>>(
-                 ctarg, "env")) {
-          standardvars[item.first] = get<std::string>(item.second);
-        }
-      }
-    }
-
-    if (configValueExists(ctarg, "env")) {
-      for (auto &item :
-           getConfigValue<std::map<std::string, toml::value>>(ctarg, "env")) {
-        standardvars[item.first] = get<std::string>(item.second);
-      }
-    }
-
-    standardvars["EXECUTABLE"] = "./" + outname;
-
-    bool hasbefore = false;
-    std::string before = "";
-
-    if (configInherits(ctarg)) {
-      if (configValueExists(tableToMap(getConfigInheritance(ctarg)), "before")) {
-        before = getInheritedValue<std::string>(ctarg, "before");
-        hasbefore = true;
-      }
-    }
-
-    if (configValueExists(ctarg, "before")) {
-      before = getConfigValue<std::string>(ctarg, "before");
-      hasbefore = true;
-    }
-
-    bool beforeoptional = false;
-    
-    if (configInherits(ctarg)) {
-      if (configValueExists(tableToMap(getConfigInheritance(ctarg)), "beforeoptional")) {
-        beforeoptional = getInheritedValue<bool>(ctarg, "beforeoptional");
-      }
-    }
-
-    if (configValueExists(ctarg, "beforeoptional")) {
-      beforeoptional = getConfigValue<bool>(ctarg, "beforeoptional");
-    }
-    
-    
-    if (hasbefore) {
-      int r = System(before.c_str(), standardvars);
-      if (r != 0) {
-        if (!beforeoptional) {
-          cout << RED << "[" << ORN << "MORTAR" << RED
-               << "]: Before command failed - set beforeoptional to true to "
-            "make optional"
-               << RES << endl;
-          exit(1);
-        }
-      }
-    }
-
-    bool hasafter = false;
-    std::string after = "";
-
-    if (configInherits(ctarg)) {
-      if (configValueExists(tableToMap(getConfigInheritance(ctarg)), "after")) {
-        after = getInheritedValue<std::string>(ctarg, "after");
-        hasafter = true;
-      }
-    }
-
-    if (configValueExists(ctarg, "after")) {
-      after = getConfigValue<std::string>(ctarg, "after");
-      hasafter = true;
-    }
-    
-
-    if (hasafter) {
-      if (!oComp(com, {out, oarg, link})) {
-        int rcode =
-            System(after.c_str(), standardvars);
-        (void)rcode;
-      }
-    } else {
-      oComp(com, {out, oarg, link});
-    }
-
-    if (runcommand != "") {
-      int rcode = System(runcommand.c_str(), standardvars);
-      (void)rcode;
-    }
-  }
-}
-
 int mortar_main() {
   if (!NTHREADS) {
     NTHREADS = 1;
   }
 
   if (TARGETNAME == "") {
-    compTarget("_default");
-    return 0;
+    return CONFIG.processTarget("_default");
   }
 
-  compTarget(TARGETNAME);
-
-  return 0;
+  return CONFIG.processTarget(TARGETNAME);
 }
 
 int mortar_clean() {
@@ -800,9 +353,9 @@ int makeCLI(int argc, char **argv) {
        option("-v", "--version")
            .set(selected, mode::version)
            .doc("Print Mortar version and exit."),
-       option("-so", "--sharedobject")
+       /*option("-so", "--sharedobject")
            .set(SHAREDOBJECT)
-           .doc("Generate a shared object instead of a binary."),
+           .doc("Generate a shared object instead of a binary."),*/
        repeatable( option("-W", "--what-if", "--new-file", "--assume-new")
                    & value("FILE", assumenewfiles) )
            .doc("Consider FILE to be infinitely new."),
@@ -842,8 +395,8 @@ int makeCLI(int argc, char **argv) {
 }
 
 int main(int argc, char *argv[]) {
-  navigateDirectories();
-#ifndef DOCTEST_CONFIG_DISABLE
+  //navigateDirectories();
+ #ifndef DOCTEST_CONFIG_DISABLE
   doctest::Context context;
 
   context.setOption("abort-after", 5);
@@ -857,5 +410,7 @@ int main(int argc, char *argv[]) {
   int res = 0;
 #endif
 
+  CONFIG = Config("mortar.mort");
+  
   return res || makeCLI(argc, argv);
 }

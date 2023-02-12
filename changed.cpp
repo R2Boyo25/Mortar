@@ -106,98 +106,38 @@ file_time_type modTime(string fname) {
   return std::filesystem::last_write_time(fname);
 }
 
-bool fileChanged(string filename) {
+  bool fileChanged(string filename) {
   gincludes[filename] = {};
   bool modtimegreater = false;
   if (exists(outname)) {
-    if (exists(".mort"))
-      modtimegreater = modTime(".mort") > modTime(outname) || modtimegreater;
-    if (exists("mortar.toml"))
-      modtimegreater =
-          modTime("mortar.toml") > modTime(outname) || modtimegreater;
+    if (exists("mortar.mort"))
+      modtimegreater = modTime("mortar.mort") > modTime(outname) || modtimegreater;
     if (modtimegreater) {
       return true;
     } else if (includesChanged(filename, filename).size() > 0) {
       return true;
-    } else if (getExt(filename) == "cpp" or getExt(filename) == "c") {
-      return ((modTime(filename) > modTime(outname)) or
-              !exists((string("./build/")) + removeDotSlash(filename + ".o")));
     } else {
-      if (compileheaders) {
-        return (
-            modTime(filename) > modTime(outname) or
-            !exists((string("./build/")) + removeDotSlash(filename + ".gch")));
-      } else {
-        return (modTime(filename) > modTime(outname));
-      }
-    }
-  } else {
-    if (includesChanged(filename, filename).size() > 0) {
-      return true;
-    } else if (!exists(string("./build/") + removeDotSlash(filename + ".o")) &&
-               !exists((string("./build/")) +
-                       removeDotSlash(filename + ".gch"))) {
-      return true;
-    } else if (getExt(filename) == "cpp" or getExt(filename) == "c") {
-      return (modTime(filename) >
-              modTime(string("./build/") + removeDotSlash(filename + ".o")));
-    } else if (getExt(filename) == "h" or getExt(filename) == "hpp") {
-      if (compileheaders) {
-        return (!exists(
-            ((string("./build/")) + removeDotSlash(filename + ".gch"))));
-      } else {
-        return true;
-      }
-    } else {
-      return true;
+      return (modTime(filename) > modTime(outname));
     }
   }
+  
+  return true;
 }
 
 bool fileChanged(string filename, string filevec) {
   bool modtimegreater = false;
   if (exists(outname)) {
-    if (exists(".mort"))
-      modtimegreater = modTime(".mort") > modTime(outname) || modtimegreater;
-    if (exists("mortar.toml"))
-      modtimegreater =
-          modTime("mortar.toml") > modTime(outname) || modtimegreater;
+    if (exists("mortar.mort"))
+      modtimegreater = modTime("mortar.mort") > modTime(outname) || modtimegreater;
     if (modtimegreater) {
       return true;
     } else if (includesChanged(filename, filevec).size() > 0) {
       return true;
-    } else if (getExt(filename) == "cpp" or getExt(filename) == "c") {
-      return ((modTime(filename) > modTime(outname)) or
-              !exists((string("./build/")) + removeDotSlash(filename + ".o")));
     } else {
-      if (compileheaders) {
-        return (
-            modTime(filename) > modTime(outname) or
-            !exists((string("./build/")) + removeDotSlash(filename + ".gch")));
-      } else {
-        return (modTime(filename) > modTime(outname));
-      }
-    }
-  } else {
-    if (includesChanged(filename, filevec).size() > 0) {
-      return true;
-    } else if (!exists(string("./build/") + removeDotSlash(filename + ".o")) &&
-               !exists((string("./build/")) +
-                       removeDotSlash(filename + ".gch"))) {
-      return true;
-    } else if (getExt(filename) == "cpp" or getExt(filename) == "c") {
-      return (modTime(filename) >
-              modTime(string("./build/") + removeDotSlash(filename + ".o")));
-    } else if (getExt(filename) == "h" or getExt(filename) == "hpp") {
-      if (compileheaders) {
-        return (!exists(
-            ((string("./build/")) + removeDotSlash(filename + ".gch"))));
-      } else {
-        return true;
-      }
-    } else {
-      return true;
+      return (modTime(filename) > modTime(outname));
     }
   }
+
+  return true;
 }
 } // namespace changed

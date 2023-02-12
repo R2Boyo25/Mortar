@@ -1,4 +1,4 @@
-#include "configutils.hpp"
+/*#include "configutils.hpp"
 
 bool configExists() {
   return std::filesystem::exists(".mort") || std::filesystem::exists("mortar.toml");
@@ -66,3 +66,4 @@ toml::value getConfigInheritance(std::map<toml::key, toml::value> table) {
   return getConfigValue<toml::value>(
       tableToMap(CONFIG), getConfigValue<std::string>(table, "inherits"));
 }
+*/
