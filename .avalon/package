@@ -3,7 +3,7 @@
     "repo": "Mortar",
     "binname": "mortar",
     "needsCompiled": true,
-    "compileScript": ".avalon/comp.py",
+    "compileScript": ".avalon/comp.sh",
     "deps": {
         "apt": [
             "libboost-all-dev"
