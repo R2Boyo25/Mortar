@@ -787,28 +787,28 @@ int makeCLI(int argc, char **argv) {
   mode selected = mode::none;
 
   auto opts =
-      ((option("-j", "--jobs") & number("N", NTHREADS))
-           .doc("Allow N jobs at once."),
-       (option("-c", "--compiler") & value("COMPILER", COMPILER))
+       ((option("-c", "--compiler") & value("COMPILER", COMPILER))
            .doc("Use COMPILER to compile files."),
-       (option("-o", "--out") & value("FILE", outname))
-           .doc("Linker output to FILE."),
        option("-d", "--debug").set(DEBUG).doc("Print debugging information."),
        option("-h", "--help")
            .set(selected, mode::help)
            .doc("Print this message and exit."),
-       option("-v", "--version")
-           .set(selected, mode::version)
-           .doc("Print Mortar version and exit."),
+       (option("-j", "--jobs") & number("N", NTHREADS))
+           .doc("Allow N jobs at once."),
+       repeatable(option("-o", "--old-file", "--assume-old")
+                   & value("FILE", assumeoldfiles) )
+           .doc("Consider FILE to be very old and don't rebuild it."),
+       (option("-O", "--out") & value("FILE", outname))
+           .doc("Linker output to FILE."),
        option("-so", "--sharedobject")
            .set(SHAREDOBJECT)
            .doc("Generate a shared object instead of a binary."),
-       repeatable( option("-W", "--what-if", "--new-file", "--assume-new")
-                   & value("FILE", assumenewfiles) )
-           .doc("Consider FILE to be infinitely new."),
-       repeatable( option("-O", "--old-file", "--assume-old")
-                   & value("FILE", assumeoldfiles) )
-           .doc("Consider FILE to be very old and don't rebuild it."));
+       option("-v", "--version")
+           .set(selected, mode::version)
+           .doc("Print Mortar version and exit."),
+       repeatable(option("-W", "--what-if", "--new-file", "--assume-new")
+                   & value("FILE", assumenewfiles))
+           .doc("Consider FILE to be infinitely new."));
 
   auto cli = ((opt_value("target", TARGETNAME),
                opts) |
@@ -833,12 +833,6 @@ int makeCLI(int argc, char **argv) {
   }
 
   return mortar_main();
-  
-  //std::cout << "Oops" << std::endl;
-  
-  //std::cout << manpage(cli);
-
-  return 1;
 }
 
 int main(int argc, char *argv[]) {
