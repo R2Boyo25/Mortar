@@ -5,4 +5,4 @@ aclocal
 autoconf
 automake --add-missing
 $SHELL configure
-make -j`nproc`
+make -j`nproc` $@
