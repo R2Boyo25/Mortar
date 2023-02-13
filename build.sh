@@ -1,8 +1,6 @@
 #!/bin/bash
 set -xe
 
-aclocal
-autoconf
-automake --add-missing
+autoreconf -i
 $SHELL configure
 make -j`nproc` $@
