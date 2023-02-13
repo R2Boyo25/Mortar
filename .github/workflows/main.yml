@@ -14,6 +14,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: kurocha/setup-cpp@v1
-      - run: sudo apt install libboost-all-dev
+      - run: sudo apt install libboost-dev
       - run: bash .avalon/comp.sh --tests
       - run: ./mortar --dt-exit --dt-no-intro  >> $GITHUB_STEP_SUMMARY

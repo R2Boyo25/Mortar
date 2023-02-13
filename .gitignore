@@ -3,6 +3,8 @@ build
 include/doctest
 include/clipp
 *~
+*.o
+*.tar.gz
 
 #### AUTOMAKE ####
 
