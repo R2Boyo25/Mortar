@@ -5,6 +5,7 @@
 #include <iostream>
 #include "../changed.hpp"
 #include <set>
+#include <mutex>
 
 int NUMCHANGED;
 extern bool DEBUG;
@@ -36,11 +37,13 @@ int System(std::string command) {
 
   processedcommand = escapeQuotes(command);
 
-  /*for (auto &var : envvars) {
+  /*
+  for (auto &var : envvars) {
     processedcommand =
     escapeQuotes("export " + var.first + "=\"" + var.second + "\"; ") +
     processedcommand;
-    }*/
+  }
+  */
 
   processedcommand = "bash -c \"" + processedcommand + "\"";
 
@@ -50,8 +53,7 @@ int System(std::string command) {
     //CANPRINT.unlock();
   }
 
-  //return system(processedcommand.c_str());
-  return 0;
+  return system(processedcommand.c_str());
 }
 
 EnvVal::EnvVal() {};
@@ -61,40 +63,37 @@ EnvVal::EnvVal(std::string value,
   this->env = env;
 }
 
+// this is very janky. Fix it
 std::string EnvVal::resolveValue() {
   std::string tmp = this->value;
+  bool found = true;
 
-  std::sregex_iterator rit ( tmp.begin(), tmp.end(), variable_regex );
-  std::sregex_iterator rend;
+  while (found) {
+    std::cout << "Before:\n\t" << tmp << std::endl;
+    found = false;
+    std::sregex_iterator rit(tmp.begin(), tmp.end(), variable_regex);
+    std::sregex_iterator rend;
 
-  #warning This only replaces the first variable found.
-
-  int found = 0;
   
-  while (rit != rend) {
-    std::string key = rit->str(1);
-    std::cout << "Position: " << rit->position() << std::endl
-              << "Length: " << rit->length() << std::endl
-              << "before: \n" << tmp << std::endl;
+    while (rit != rend) {
+      std::string key = rit->str(1);
     
-    if (!this->env->count(key)) {
-      throw std::runtime_error("\n    (In configuration file) Variable $"
-                               + key + " is not defined.");
-                               }
+      if (!this->env->count(key)) {
+        throw std::runtime_error("\n    (In configuration file) Variable $"
+                                 + key + " is not defined.");
+      }
     
-    tmp.replace(rit->position(),
-                rit->length(),
-                this->env->at(key).resolveValue());
+      tmp.replace(rit->position(),
+                  rit->length(),
+                  this->env->at(key).resolveValue());
 
-    std::cout << "after: \n" << tmp << std::endl;
+      ++rit;
+      found = true;
+    }
 
-    ++rit;
-    found++;
+    std::cout << "After:\n\t" << tmp << std::endl;
   }
 
-  if (found) {
-    std::cout << found << std::endl;
-  }
 
   return tmp;
 }
@@ -147,17 +146,17 @@ int Step::runObject(bool all, std::vector<std::string> filenames) {
       ofilenames.push_back(this->getObject(file));
     }
     
-    this->env->insert_or_assign("OBJECT_FILES",
+    this->env->insert_or_assign("FILES",
                                 EnvVal(util::join(util::wrap(ofilenames)),
                                        this->env));
     status = this->runCommands();
-    this->env->erase("OBJECT_FILES");
+    this->env->erase("FILES");
   } else {
     for (auto& file : filenames) {
-      this->env->insert_or_assign("OBJECT_FILE",
-                                  EnvVal(this->getObject(file), this->env));
+      this->env->insert_or_assign("FILE",
+                                  EnvVal(util::removeDotSlash(this->getObject(file)), this->env));
       status = status || this->runCommands();
-      this->env->erase("OBJECT_FILE");
+      this->env->erase("FILE");
     }
   }
 
@@ -195,7 +194,11 @@ int Step::run(std::vector<std::string> unfiltered_filenames) {
     this->env->erase("FILES");
   } else {
     for (auto& file : filenames) {
-      std::cout << file << " changed? " << changed::fileChanged(file) << std::endl;
+      if (DEBUG) {
+        std::cout << file << " -> " << this->getObject(file) << std::endl
+                  << "    changed? " << std::vector<std::string>({"No", "Yes"})[changed::fileChanged(file)] << std::endl;
+      }
+      
       if (changed::fileChanged(file)) {
         this->env->insert_or_assign("FILE", EnvVal("\""+ file +"\"", this->env));
         this->env->insert_or_assign("OBJECT_FILE",
@@ -221,7 +224,7 @@ std::string Step::getObject(std::string filename) {
     }
   }
 
-  return "./build/" + filename + ".o";
+  return "./build/" + util::removeDotSlash(filename) + ".o";
 }
 
 std::vector<std::string> Step::changedFiles(std::vector<std::string> files) {
