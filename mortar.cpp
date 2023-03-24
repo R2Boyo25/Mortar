@@ -386,12 +386,6 @@ int makeCLI(int argc, char **argv) {
   }
 
   return mortar_main();
-  
-  //std::cout << "Oops" << std::endl;
-  
-  //std::cout << manpage(cli);
-
-  return 1;
 }
 
 int main(int argc, char *argv[]) {

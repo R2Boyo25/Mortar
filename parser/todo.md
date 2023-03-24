@@ -15,7 +15,7 @@
         - [ ] Multiple files
         - [ ] Files
       - [ ] ,noobjects
-      - [ ] ,alone - only this task will be run - for multithreaded things
+      - [ ] ,alone - prevent other tasks from spawning while this is running - for multithreaded things
       - [ ] ,capture - capture files
     - [x] Objects
     - [x] After
