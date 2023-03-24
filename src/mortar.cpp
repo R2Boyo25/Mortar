@@ -1,4 +1,4 @@
-#include "doctest.h"
+#include "doctest.hpp"
 
 #include <cstddef>
 #include <filesystem>

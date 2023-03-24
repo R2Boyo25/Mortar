@@ -1,6 +1,6 @@
 #pragma once
 
-#include "doctest.h"
+#include "doctest.hpp"
 #include <any>
 #include <filesystem>
 #include <fstream>

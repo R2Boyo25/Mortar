@@ -7,7 +7,7 @@
 #include <tuple>
 #include <vector>
 
-#include "doctest.h"
+#include "doctest.hpp"
 #include "util.hpp"
 
 extern std::string outname;
