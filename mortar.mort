@@ -5,9 +5,9 @@ h:
     echo H $FILE
 
 _default:
-  before:
-    echo "Before"
   build: .*\.cpp ,per
-    echo $FILE $OBJECT_FILE
-  objects:
-    #g++ $OBJECT_FILES -o $EXECUTABLE
+    echo Building $OBJECT_FILE...
+    g++ $FILE -o $OBJECT_FILE -c -DDOCTEST_CONFIG_NO_UNPREFIXED_OPTIONS -Ofast -std=c++17 -DCOMMITHASH="\"$(git rev-parse HEAD)\"" -Wall -Wextra -Iinclude
+  objects: .*\.o ,all
+    echo OBJS: $FILES
+    g++ $FILES -o mortar2 # $EXECUTABLE

@@ -34,8 +34,9 @@
 - [x] Compilation
   - [x] Find files
   - [x] Run target w/ files
-  - [ ] Build
+  - [x] Build
     - [x] Regexes
-    - [ ] Changed checker
-- [ ] Fix variable resolution and identification in commands
+    - [x] Changed checker
+- [x] Fix variable resolution and identification in commands
 - [x] Fix duplicate runs
+- [ ] Global variables

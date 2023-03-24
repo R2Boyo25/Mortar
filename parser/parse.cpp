@@ -6,6 +6,7 @@
 #include "../changed.hpp"
 #include <set>
 #include <mutex>
+#include <iomanip>
 
 int NUMCHANGED;
 extern bool DEBUG;
@@ -19,17 +20,9 @@ std::regex comment_regex(R"re(\s*#.*$)re");
 std::regex object_regex(R"re(.*objects$)re");
 
 std::string escapeQuotes(std::string content) {
-  std::string ocontent = content;
-
-  std::regex re1("\\\"");
-
-  ocontent = std::regex_replace(ocontent, re1, "\\\"");
-
-  std::regex re2("\"");
-
-  ocontent = std::regex_replace(ocontent, re2, "\"");
-
-  return ocontent;
+  std::stringstream ss;
+  ss << std::quoted(content);
+  return ss.str();
 }
 
 int System(std::string command) {
@@ -45,7 +38,7 @@ int System(std::string command) {
   }
   */
 
-  processedcommand = "bash -c \"" + processedcommand + "\"";
+  processedcommand = "bash -c " + processedcommand;
 
   if (DEBUG) {
     //CANPRINT.lock();
@@ -63,35 +56,27 @@ EnvVal::EnvVal(std::string value,
   this->env = env;
 }
 
-// this is very janky. Fix it
 std::string EnvVal::resolveValue() {
   std::string tmp = this->value;
-  bool found = true;
-
-  while (found) {
-    std::cout << "Before:\n\t" << tmp << std::endl;
-    found = false;
-    std::sregex_iterator rit(tmp.begin(), tmp.end(), variable_regex);
-    std::sregex_iterator rend;
-
+  std::sregex_iterator rend;
   
-    while (rit != rend) {
-      std::string key = rit->str(1);
-    
-      if (!this->env->count(key)) {
-        throw std::runtime_error("\n    (In configuration file) Variable $"
-                                 + key + " is not defined.");
-      }
-    
-      tmp.replace(rit->position(),
-                  rit->length(),
-                  this->env->at(key).resolveValue());
+  while (1) {
+    std::sregex_iterator rit(tmp.begin(), tmp.end(), variable_regex);
 
-      ++rit;
-      found = true;
+    if (rit == rend) {
+      break;
     }
-
-    std::cout << "After:\n\t" << tmp << std::endl;
+    
+    std::string key = rit->str(1);
+    
+    if (!this->env->count(key)) {
+      throw std::runtime_error("\n    (In configuration file) Variable $"
+                               + key + " is not defined.");
+    }
+      
+    tmp.replace(rit->position(),
+                rit->length(),
+                this->env->at(key).resolveValue());
   }
 
 
@@ -147,7 +132,7 @@ int Step::runObject(bool all, std::vector<std::string> filenames) {
     }
     
     this->env->insert_or_assign("FILES",
-                                EnvVal(util::join(util::wrap(ofilenames)),
+                                EnvVal(util::join(util::wrap(filenames)),
                                        this->env));
     status = this->runCommands();
     this->env->erase("FILES");
@@ -200,9 +185,9 @@ int Step::run(std::vector<std::string> unfiltered_filenames) {
       }
       
       if (changed::fileChanged(file)) {
-        this->env->insert_or_assign("FILE", EnvVal("\""+ file +"\"", this->env));
+        this->env->insert_or_assign("FILE", EnvVal("\"" + file + "\"", this->env));
         this->env->insert_or_assign("OBJECT_FILE",
-                                    EnvVal(this->getObject(file), this->env));
+                                    EnvVal("\"" + this->getObject(file) + "\"", this->env));
         status = status || this->runCommands();
         this->env->erase("FILE");
         this->env->erase("OBJECT_FILE");
