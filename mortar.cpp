@@ -41,6 +41,8 @@ using namespace clipp;
 #endif
 
 bool ERRORFOUND = false;
+bool DEBUG = false;
+bool SILENT = false;
 mutex CANPRINT;
 mutex MODIFY_GLOBALS;
 int NTHREADS = std::thread::hardware_concurrency();
@@ -53,7 +55,6 @@ std::string outname;
 string COMPILER = "";
 std::vector<std::string> EXCLUDE = {};
 std::vector<std::string> INCLUDE = {};
-bool DEBUG = false;
 std::vector<std::string> deplinks = {};
 std::map<std::string, std::string> standardvars = {};
 std::vector<std::string> assumenewfiles = {};
@@ -340,16 +341,27 @@ int makeCLI(int argc, char **argv) {
   mode selected = mode::none;
 
   auto opts =
-      ((option("-j", "--jobs") & number("N", NTHREADS))
-           .doc("Allow N jobs at once."),
-       (option("-c", "--compiler") & value("COMPILER", COMPILER))
+    ((option("-c", "--compiler") & value("COMPILER", COMPILER))
            .doc("Use COMPILER to compile files."),
-       (option("-o", "--out") & value("FILE", outname))
-           .doc("Linker output to FILE."),
-       option("-d", "--debug").set(DEBUG).doc("Print debugging information."),
+       option("-d", "--debug")
+           .set(DEBUG)
+           .doc("Print debugging information."),
        option("-h", "--help")
            .set(selected, mode::help)
            .doc("Print this message and exit."),
+       (option("-j", "--jobs") & number("N", NTHREADS))
+           .doc("Allow N jobs at once."),
+       option("--no-silent")
+           .set(SILENT, false)
+           .doc("Echo recipes (disable --silent mode)"),
+       (option("-o", "--out") & value("FILE", outname))
+           .doc("Linker output to FILE."),
+       repeatable( option("-O", "--old-file", "--assume-old")
+                   & value("FILE", assumeoldfiles) )
+           .doc("Consider FILE to be very old and don't rebuild it."),
+       option("-s", "--silent", "--quiet")
+           .set(SILENT, true)
+           .doc("Don't echo recipes."),
        option("-v", "--version")
            .set(selected, mode::version)
            .doc("Print Mortar version and exit."),
@@ -358,10 +370,7 @@ int makeCLI(int argc, char **argv) {
            .doc("Generate a shared object instead of a binary."),*/
        repeatable( option("-W", "--what-if", "--new-file", "--assume-new")
                    & value("FILE", assumenewfiles) )
-           .doc("Consider FILE to be infinitely new."),
-       repeatable( option("-O", "--old-file", "--assume-old")
-                   & value("FILE", assumeoldfiles) )
-           .doc("Consider FILE to be very old and don't rebuild it."));
+           .doc("Consider FILE to be infinitely new."));
 
   auto cli = ((opt_value("target", TARGETNAME),
                opts) |

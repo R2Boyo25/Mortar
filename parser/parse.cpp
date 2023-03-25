@@ -1,3 +1,14 @@
+//
+// parse.cpp
+//  Kazani 2023
+//
+// Parse .mort syntax
+//
+
+#warning env should probably be passed by reference in all classes.
+
+#warning Move executing commands out of the parser, please.
+
 #include "parse.hpp"
 #include "../util.hpp"
 #include <regex>
@@ -10,6 +21,7 @@
 
 int NUMCHANGED;
 extern bool DEBUG;
+extern bool SILENT;
 
 std::regex variable_regex(R"re(\$([a-zA-Z0-9_]+))re", std::regex_constants::optimize);
 //std::regex indentation_regex(R"re(^\s*)re");
@@ -26,8 +38,18 @@ std::string escapeQuotes(std::string content) {
 }
 
 int System(std::string command) {
+  if (util::strip(command) == "") {
+    return 0;
+  }
+  
   std::string processedcommand;
 
+  if (!SILENT || DEBUG) {
+    //CANPRINT.lock();
+    std::cout << util::lstrip(command) << std::endl;
+    //CANPRINT.unlock();
+  }
+  
   processedcommand = escapeQuotes(command);
 
   /*
@@ -38,49 +60,11 @@ int System(std::string command) {
   }
   */
 
-  processedcommand = "bash -c " + processedcommand;
+  
+  processedcommand = "$SHELL -c " + processedcommand;
 
-  if (DEBUG) {
-    //CANPRINT.lock();
-    std::cout << processedcommand << std::endl;
-    //CANPRINT.unlock();
-  }
 
   return system(processedcommand.c_str());
-}
-
-EnvVal::EnvVal() {};
-EnvVal::EnvVal(std::string value,
-               std::map<std::string, EnvVal> *env) {
-  this->value = value;
-  this->env = env;
-}
-
-std::string EnvVal::resolveValue() {
-  std::string tmp = this->value;
-  std::sregex_iterator rend;
-  
-  while (1) {
-    std::sregex_iterator rit(tmp.begin(), tmp.end(), variable_regex);
-
-    if (rit == rend) {
-      break;
-    }
-    
-    std::string key = rit->str(1);
-    
-    if (!this->env->count(key)) {
-      throw std::runtime_error("\n    (In configuration file) Variable $"
-                               + key + " is not defined.");
-    }
-      
-    tmp.replace(rit->position(),
-                rit->length(),
-                this->env->at(key).resolveValue());
-  }
-
-
-  return tmp;
 }
 
 Step::Step() {};
@@ -88,7 +72,7 @@ Step::Step(std::string process,
            std::string type,
            std::vector<std::string> flags,
            std::vector<std::string> regexes,
-           std::map<std::string, EnvVal> *env) {
+           Env env) {
   this->type = type;
   this->flags = flags;
   this->regexes = regexes;
@@ -131,17 +115,14 @@ int Step::runObject(bool all, std::vector<std::string> filenames) {
       ofilenames.push_back(this->getObject(file));
     }
     
-    this->env->insert_or_assign("FILES",
-                                EnvVal(util::join(util::wrap(filenames)),
-                                       this->env));
+    env.insert("FILES", util::join(util::wrap(filenames)));
     status = this->runCommands();
-    this->env->erase("FILES");
+    env.erase("FILES");
   } else {
     for (auto& file : filenames) {
-      this->env->insert_or_assign("FILE",
-                                  EnvVal(util::removeDotSlash(this->getObject(file)), this->env));
+      env.insert("FILE", util::removeDotSlash(this->getObject(file)));
       status = status || this->runCommands();
-      this->env->erase("FILE");
+      env.erase("FILE");
     }
   }
 
@@ -173,10 +154,9 @@ int Step::run(std::vector<std::string> unfiltered_filenames) {
   }
 
   if (all) {
-    this->env->insert_or_assign("FILES",
-                                EnvVal(util::join(util::wrap(this->changedFiles(filenames))), this->env));
+    env.insert("FILES", util::join(util::wrap(this->changedFiles(filenames))));
     status = this->runCommands();
-    this->env->erase("FILES");
+    env.erase("FILES");
   } else {
     for (auto& file : filenames) {
       if (DEBUG) {
@@ -185,12 +165,11 @@ int Step::run(std::vector<std::string> unfiltered_filenames) {
       }
       
       if (changed::fileChanged(file)) {
-        this->env->insert_or_assign("FILE", EnvVal("\"" + file + "\"", this->env));
-        this->env->insert_or_assign("OBJECT_FILE",
-                                    EnvVal("\"" + this->getObject(file) + "\"", this->env));
+        env.insert("FILE", "\"" + file + "\"");
+        env.insert("OBJECT_FILE", "\"" + this->getObject(file) + "\"");
         status = status || this->runCommands();
-        this->env->erase("FILE");
-        this->env->erase("OBJECT_FILE");
+        env.erase("FILE");
+        env.erase("OBJECT_FILE");
       }
     }
   }
@@ -231,13 +210,13 @@ std::vector<std::string> Step::changedFiles(std::vector<std::string> files) {
 
 Target::Target() {};
 Target::Target(std::string process,
-       std::vector<std::string> inherits,
-       std::map<std::string, Target> *targets,
-       std::map<std::string, EnvVal> *env) {
+               std::vector<std::string> inherits,
+               std::map<std::string, Target> *targets,
+               Env env) {
   this->targets = targets;
-  this->env = env;
   this->inherits = inherits;
-
+  this->env = env;
+  
   std::stringstream buffer;
   bool insection = false;
   std::string type;
@@ -266,8 +245,8 @@ Target::Target(std::string process,
     } else if (std::regex_match(line, m, assignment_regex)) {
       std::string variable_name = m.str(1);
       std::string variable_value = m.str(2);
-      this->delayed_env.insert_or_assign(variable_name,
-                                  EnvVal(variable_value, this->env));
+
+      this->delayed_env.insert(variable_name, variable_value);
     } else if (insection) {
       buffer << line << std::endl;
     } else {
@@ -290,7 +269,7 @@ Target::Target(std::string process,
 
 std::map<std::string, std::vector<Step>> Target::getSteps() {
   std::map<std::string, std::vector<Step>> all_steps = this->steps;
-
+  
   for (auto& parent : this->inherits) {
     for (auto& keypair : this->targets->at(parent).getSteps()) {
       for (auto& step : keypair.second) {
@@ -321,37 +300,27 @@ int Target::runStep(std::string type, std::vector<std::string> filenames) {
   return status;
 }
 
-int Target::processFiles(std::vector<std::string> filenames) {
+int Target::processFiles() {
   int status = 0;
-
-  for (auto& var : this->delayed_env) {
-    this->env->insert_or_assign(var.first, var.second);
-  }
-
-  if (this->env->count("EXECUTABLE")) {
-    outname = this->env->at("EXECUTABLE").resolveValue(); 
-  }
   
-  status = status || this->runStep(std::string("before"), filenames);
+  env.append(delayed_env);
   
-  status = status || this->runStep(std::string("before_build"), filenames);
-  status = status || this->runStep(std::string("build"), filenames);
-  status = status || this->runStep(std::string("after_build"), filenames);
+  status = status || this->runStep(std::string("before"), util::getFiles());
+  
+  status = status || this->runStep(std::string("before_build"), util::getFiles());
+  status = status || this->runStep(std::string("build"), util::getFiles());
+  status = status || this->runStep(std::string("after_build"), util::getFiles());
 
-  status = status || this->runStep(std::string("before_objects"), filenames);
-  status = status || this->runStep(std::string("objects"), filenames);
-  status = status || this->runStep(std::string("after_objects"), filenames);
+  status = status || this->runStep(std::string("before_objects"), util::getFiles());
+  status = status || this->runStep(std::string("objects"), util::getFiles());
+  status = status || this->runStep(std::string("after_objects"), util::getFiles());
 
-  status = status || this->runStep(std::string("after"), filenames);
+  status = status || this->runStep(std::string("after"), util::getFiles());
 
   return status;
 }
 
 std::vector<std::string> Target::changedFiles(std::vector<std::string> filenames) {
-  if (this->delayed_env.count("EXECUTABLE")) {
-    outname = this->delayed_env.at("EXECUTABLE").resolveValue(); 
-  }
-
   std::set<std::string> files = {};
 
   if (!this->steps.count("build")) {
@@ -373,6 +342,7 @@ Config::Config(std::string filename) {
   bool insection = false;
   std::string name;
   std::vector<std::string> inherits;
+  
   for (auto& raw_line : util::split(util::readFile(filename), '\n')) {
     std::string line = std::regex_replace(raw_line, comment_regex, "");
     std::smatch m;
@@ -383,7 +353,7 @@ Config::Config(std::string filename) {
           this->targets[name] = Target(std::string(buffer.str()),
                                        inherits,
                                        &this->targets,
-                                       &this->env);
+                                       this->env);
         }
       
         name = m.str(2);
@@ -400,7 +370,7 @@ Config::Config(std::string filename) {
     } else if (std::regex_match(line, m, assignment_regex)) {
       std::string variable_name = m.str(1);
       std::string variable_value = m.str(2);
-      this->env[variable_name] = EnvVal(variable_value, &this->env);
+      env.insert(variable_name, variable_value);
     } else {
       if (util::strip(line) != "") {
         throw std::runtime_error("\n    Invalid syntax (Config): " + raw_line);
@@ -413,7 +383,7 @@ Config::Config(std::string filename) {
       this->targets[name] = Target(std::string(buffer.str()),
                                    inherits,
                                    &this->targets,
-                                   &this->env);
+                                   this->env);
     }
   }
 }
@@ -423,13 +393,13 @@ int Config::processTarget(std::string target) {
     throw std::runtime_error("Target: " + target + " does not exist.");
   }
 
-  if (this->env.count("EXECUTABLE")) {
-    outname = this->env["EXECUTABLE"].resolveValue(); 
+  if (outname != "") {
+    env.insert("EXECUTABLE", outname); 
   }
 
   NUMCHANGED = this->changedFiles(target).size();
 
-  return this->targets[target].processFiles(util::getFiles());
+  return this->targets[target].processFiles();
 }
 
 std::vector<std::string> Config::changedFiles(std::string target) {

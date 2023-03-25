@@ -1,13 +1,7 @@
 EXECUTABLE = "mortar2"
 
-h:
-  build: .*\.h
-    echo H $FILE
-
 _default:
   build: .*\.cpp ,per
-    echo Building $OBJECT_FILE...
-    g++ $FILE -o $OBJECT_FILE -c -DDOCTEST_CONFIG_NO_UNPREFIXED_OPTIONS -Ofast -std=c++17 -DCOMMITHASH="\"$(git rev-parse HEAD)\"" -Wall -Wextra -Iinclude
+    g++ $FILE -o $OBJECT_FILE -c -DDOCTEST_CONFIG_NO_UNPREFIXED_OPTIONS -Ofast -std=c++17 -DCOMMITHASH="\"$(git rev-parse HEAD)\"" -Wall -Wextra -Iinclude -g
   objects: .*\.o ,all
-    echo OBJS: $FILES
     g++ $FILES -o mortar2 # $EXECUTABLE

@@ -12,7 +12,7 @@
       - [x] ,per
       - [ ] ,object=
         - [ ] Replace variables
-        - [ ] Multiple files
+        - [ ] Multiple files (,objects=item,item2,item3... ?)
         - [ ] Files
       - [ ] ,noobjects
       - [ ] ,alone - prevent other tasks from spawning while this is running - for multithreaded things
@@ -37,6 +37,7 @@
   - [x] Build
     - [x] Regexes
     - [x] Changed checker
+    - [ ] Multithreading
 - [x] Fix variable resolution and identification in commands
 - [x] Fix duplicate runs
 - [ ] Global variables
