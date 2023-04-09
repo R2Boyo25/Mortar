@@ -1,7 +1,19 @@
 EXECUTABLE = "mortar2"
+VERSION_FLAGS = "-DCOMMITHASH="\"$(git rev-parse HEAD)\"" -DVERSION="\"GIT\"""
+CXXFLAGS = "-c -Ofast -std=c++17 -Wall -Wextra -Iinclude -g $VERSION_FLAGS"
 
-_default:
+generic:
   build: .*\.cpp ,per
-    g++ $FILE -o $OBJECT_FILE -c -DDOCTEST_CONFIG_NO_UNPREFIXED_OPTIONS -Ofast -std=c++17 -DCOMMITHASH="\"$(git rev-parse HEAD)\"" -Wall -Wextra -Iinclude -g
+    g++ $FILE -o $OBJECT_FILE $CXXFLAGS
   objects: .*\.o ,all
-    g++ $FILES -o mortar2 # $EXECUTABLE
+    g++ $FILES -o $EXECUTABLE
+
+_default: generic
+  CXX_FLAGS="$CXX_FLAGS -DDOCTEST_CONFIG_DISABLE"
+
+_debug: generic
+  CXX_FLAGS="$CXX_FLAGS -DDOCTEST_CONFIG_INCLUDE_TYPE_TRAITS -DDOCTEST_CONFIG_NO_UNPREFIXED_OPTIONS "
+
+debug: _debug
+  after:
+    gdb $EXECUTABLE

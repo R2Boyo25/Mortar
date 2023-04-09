@@ -72,11 +72,11 @@ Step::Step(std::string process,
            std::string type,
            std::vector<std::string> flags,
            std::vector<std::string> regexes,
-           Env env) {
+           std::shared_ptr<Env> env) {
   this->type = type;
   this->flags = flags;
   this->regexes = regexes;
-  this->env = env;
+  this->env = std::shared_ptr(env);
 
   this->commands = {};
 
@@ -115,14 +115,14 @@ int Step::runObject(bool all, std::vector<std::string> filenames) {
       ofilenames.push_back(this->getObject(file));
     }
     
-    env.insert("FILES", util::join(util::wrap(filenames)));
+    env->insert("FILES", util::join(util::wrap(filenames)));
     status = this->runCommands();
-    env.erase("FILES");
+    env->erase("FILES");
   } else {
     for (auto& file : filenames) {
-      env.insert("FILE", util::removeDotSlash(this->getObject(file)));
+      env->insert("FILE", util::removeDotSlash(this->getObject(file)));
       status = status || this->runCommands();
-      env.erase("FILE");
+      env->erase("FILE");
     }
   }
 
@@ -154,9 +154,9 @@ int Step::run(std::vector<std::string> unfiltered_filenames) {
   }
 
   if (all) {
-    env.insert("FILES", util::join(util::wrap(this->changedFiles(filenames))));
+    env->insert("FILES", util::join(util::wrap(this->changedFiles(filenames))));
     status = this->runCommands();
-    env.erase("FILES");
+    env->erase("FILES");
   } else {
     for (auto& file : filenames) {
       if (DEBUG) {
@@ -165,11 +165,11 @@ int Step::run(std::vector<std::string> unfiltered_filenames) {
       }
       
       if (changed::fileChanged(file)) {
-        env.insert("FILE", "\"" + file + "\"");
-        env.insert("OBJECT_FILE", "\"" + this->getObject(file) + "\"");
+        env->insert("FILE", "\"" + file + "\"");
+        env->insert("OBJECT_FILE", "\"" + this->getObject(file) + "\"");
         status = status || this->runCommands();
-        env.erase("FILE");
-        env.erase("OBJECT_FILE");
+        env->erase("FILE");
+        env->erase("OBJECT_FILE");
       }
     }
   }
@@ -211,11 +211,11 @@ std::vector<std::string> Step::changedFiles(std::vector<std::string> files) {
 Target::Target() {};
 Target::Target(std::string process,
                std::vector<std::string> inherits,
-               std::map<std::string, Target> *targets,
-               Env env) {
-  this->targets = targets;
+               std::shared_ptr<std::map<std::string, Target>> targets,
+               std::shared_ptr<Env> env) {
+  this->targets = std::shared_ptr(targets);
   this->inherits = inherits;
-  this->env = env;
+  this->env = std::shared_ptr(env);
   
   std::stringstream buffer;
   bool insection = false;
@@ -269,6 +269,16 @@ Target::Target(std::string process,
 
 std::map<std::string, std::vector<Step>> Target::getSteps() {
   std::map<std::string, std::vector<Step>> all_steps = this->steps;
+  std::cout << "I've been called?" << std::endl;
+
+  #warning It is not resolving inherited targets for some reason
+  for (auto& target : *this->targets) {
+    std::cout << target.first << std::endl;
+  }
+
+  for (auto& target : this->inherits) {
+    std::cout << "Inherits from: " << target << std::endl;
+  }
   
   for (auto& parent : this->inherits) {
     for (auto& keypair : this->targets->at(parent).getSteps()) {
@@ -303,7 +313,7 @@ int Target::runStep(std::string type, std::vector<std::string> filenames) {
 int Target::processFiles() {
   int status = 0;
   
-  env.append(delayed_env);
+  env->append(delayed_env);
   
   status = status || this->runStep(std::string("before"), util::getFiles());
   
@@ -338,10 +348,13 @@ std::vector<std::string> Target::changedFiles(std::vector<std::string> filenames
 
 Config::Config() {};
 Config::Config(std::string filename) {
+  this->env = std::shared_ptr((new Env())->as_ptr());
+  
   std::stringstream buffer;
   bool insection = false;
   std::string name;
   std::vector<std::string> inherits;
+  this->targets = std::shared_ptr<std::map<std::string, Target>>(new std::map<std::string, Target>);
   
   for (auto& raw_line : util::split(util::readFile(filename), '\n')) {
     std::string line = std::regex_replace(raw_line, comment_regex, "");
@@ -350,10 +363,10 @@ Config::Config(std::string filename) {
     if (std::regex_match(line, m, main_section_regex)) {
       if (!m.str(1).size()) {
         if (buffer.str().size()) {
-          this->targets[name] = Target(std::string(buffer.str()),
-                                       inherits,
-                                       &this->targets,
-                                       this->env);
+          this->targets->insert_or_assign(name, Target(std::string(buffer.str()),
+                                                       inherits,
+                                                       this->targets,
+                                                       this->env));
         }
       
         name = m.str(2);
@@ -370,7 +383,7 @@ Config::Config(std::string filename) {
     } else if (std::regex_match(line, m, assignment_regex)) {
       std::string variable_name = m.str(1);
       std::string variable_value = m.str(2);
-      env.insert(variable_name, variable_value);
+      env->insert(variable_name, variable_value);
     } else {
       if (util::strip(line) != "") {
         throw std::runtime_error("\n    Invalid syntax (Config): " + raw_line);
@@ -380,28 +393,28 @@ Config::Config(std::string filename) {
 
   if (insection) {
     if (buffer.str().size()) {
-      this->targets[name] = Target(std::string(buffer.str()),
-                                   inherits,
-                                   &this->targets,
-                                   this->env);
+      this->targets->insert_or_assign(name, Target(std::string(buffer.str()),
+                                                   inherits,
+                                                   this->targets,
+                                                   this->env));
     }
   }
 }
 
 int Config::processTarget(std::string target) {
-  if (!this->targets.count(target)) {
+  if (!this->targets->count(target)) {
     throw std::runtime_error("Target: " + target + " does not exist.");
   }
 
   if (outname != "") {
-    env.insert("EXECUTABLE", outname); 
+    env->insert("EXECUTABLE", outname); 
   }
 
   NUMCHANGED = this->changedFiles(target).size();
 
-  return this->targets[target].processFiles();
+  return this->targets->at(target).processFiles();
 }
 
 std::vector<std::string> Config::changedFiles(std::string target) {
-  return this->targets[target].changedFiles(util::getFiles());
+  return this->targets->at(target).changedFiles(util::getFiles());
 }
